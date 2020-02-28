@@ -1,3 +1,4 @@
+
 #linear mixed effects
 library(nlme)
 library(car)
@@ -10,73 +11,117 @@ head(drad.phys)
 hist(drad.phys$A)
 
 #models
-drought<-subset(drad.phys,subset=="Drought")
+drought<-subset(drad.phys,subset=="Drought") # a little less normal, produce due to the drought reductions through time...
 hist(drought$A)
-recovery<-subset(drad.phys,subset.recovery=="Recovery")
-hist(recovery$A)
 
-#full no ar term
-full.A<-lme(A~Species*treatment*Week,random=~1|Block/Plant,data=drad.phys,na.action = na.exclude)
-summary(full.A)
-Anova(full.A,type=3)
-#full.ar term
-full.A.ar<-lme(A~Species*treatment*Week,random=~1|Block/Plant,correlation=corAR1(form=~1),data=drad.phys,na.action = na.exclude)
-summary(full.A.ar)
-Anova(full.A.ar,type=3)
-#see if an autoregressive term matters
-anova(full.A.ar, full.A) #it does, include it
+#seperate analysis into two time periods: by drought and recovery
+summary(drought)
+full.drought.A.AR<-lme(A~Species*treatment*Week,random=~1|Block/Plant,correlation=corAR1(form=~1),data=drought,na.action = na.exclude)
+full.drought.A<-lme(A~Species*treatment*Week,random=~1|Block/Plant,data=drought,na.action = na.exclude)
+AIC(full.drought.A,full.drought.A.AR) #really no difference
 
-a.means<-aggregate(A~Species + Week + subset,mean,data=drad.phys)
-
-#put everything in relatvistic terms to standardize
-head(drad.phys)
-plot(A~gsw,data=drad.phys)
-
-controls<-subset(drad.phys,treatment=='C')
-control.A<-aggregate(A~Species + Week + subset + subset.recovery,mean,data=controls)
-controls.averaged.merged<-merge(drad.phys,control.A,by=c('Species','Week','subset','subset.recovery'))
-controls.averaged.merged$a.perc <- ((controls.averaged.merged$A.x - controls.averaged.merged$A.y)/controls.averaged.merged$A.y)*100
-
-final.a.average<-aggregate(a.perc~Week + Species,mean,data=controls.averaged.merged)
-final.a.sd<-aggregate(a.perc~Week + Species,ser,data=controls.averaged.merged)
-merge.final.a<-merge(final.a.average,final.a.sd,by=c('Week','Species'))
-
-#seperate analysis by drought versus recovery
-full.drought.A<-lme(A~Species*treatment*Week,random=~1|Block/Plant,correlation=corAR1(form=~1),data=drought,na.action = na.exclude)
 Anova(full.drought.A,type=3)
-#all interactions singificant except the three-way interaction. 
-#week not significant
+aov(full.drought.A)
+plot(full.drought.A) #residuals versus fitted has fairly homegenous variance in the drought model
+qqnorm(resid(full.drought.A)) #looks good
+qqline(resid(full.drought.A))
+shapiro.test(resid(full.drought.A)) #evidence that residuals are not normally distributed 
 
-full.recovery.A<-lme(A~Species*treatment*Week,random=~1|Block/Plant,correlation=corAR1(form=~1),data=recovery,na.action = na.exclude)
-Anova(full.recovery.A,type=3)
-#Species all recovered similarly, with respect to species*treatment and species*week, not significant
+#transform this
+drought$A.transformed <- sqrt((drought$A + 1)) #square root trnasformation with an added constant because of negative values
+View(drought)
+?anova
+#re-run model with transformation 
+full.drought.A.transformed<-lme(A.transformed~Species*treatment*Week,random=~1|Block/Plant,data=drought,na.action = na.exclude)
+#summary(full.drought.A.transformed)
+anova.lme(full.drought.A.transformed)
+Anova(full.drought.A.transformed, contrasts=list(topic=contr.sum, sys=contr.sum), type=3) #unequal sample sizes, use type 3
+plot(full.drought.A.transformed) #looks good
+qqnorm(resid(full.drought.A.transformed)) #looks better
+qqline(resid(full.drought.A.transformed))
+shapiro.test(resid(full.drought.A.transformed)) #passes the test
+
+#despite baseline differences among species (main effect), species responded similarly to the drought
+#treatment effects, which depended on the week, and the response of speciues to the treatment through time was
+#only marignally singiicant 
+
+#now look at recovery - apply the same transformation as during the drought
+summary(drought)
+recovery<-subset(drad.phys,subset.recovery=="Recovery") # normal
+hist(recovery$A)
+View(recovery)
+#look at autocorrelation
+full.recovery.A.AR<-lme(A~Species*treatment*Week,random=~1|Block/Plant,correlation=corAR1(form=~1),data=recovery,na.action = na.exclude)
+full.recovery.A<-lme(A~Species*treatment*Week,random=~1|Block/Plant,data=recovery,na.action = na.exclude)
+AIC(full.recovery.A,full.recovery.A.AR) #really no difference again
+
+#look at model assumptions
+plot(full.recovery.A) #residuals versus fitted has fairly homegenous variance in the drought model
+qqnorm(resid(full.recovery.A)) #some noise at the tails
+qqline(resid(full.recovery.A))
+shapiro.test(resid(full.recovery.A)) #doesn't pass the test
+
+#transform
+recovery$A.transformed <- sqrt((recovery$A + 1)) 
+
+#look at model
+full.recovery.A.transformed<-lme(A.transformed~Species*treatment*Week,random=~1|Block/Plant,correlation=corAR1(form=~1), data=recovery,na.action = na.exclude)
+plot(full.recovery.A.transformed) #residuals versus fitted has fairly homegenous variance in the drought model
+qqnorm(resid(full.recovery.A.transformed)) #some noise at the tails
+qqline(resid(full.recovery.A.transformed))
+shapiro.test(resid(full.recovery.A.transformed)) #still bad, look into data
+hist(resid(full.recovery.A.transformed))
+View(resid(full.recovery.A.transformed))
+
+#see if removal of the one cler outlier makes a difference...
+library(dplyr)
+recovery.2 <- recovery %>% filter(!(Plant=='bogr19'))
+View(recovery.2)
+
+full.recovery.A.transformed.2<-lme(A.transformed~Species*treatment*Week,random=~1|Block/Plant,correlation=corAR1(form=~1), data=recovery.2,na.action = na.exclude)
+shapiro.test(resid(full.recovery.A.transformed.2))
+#removal of the outlier helps data meet assumptions of normally distributed residuals. Still some skew, though that is to be expected.
+
+#ok what does the model say?
+Anova(full.recovery.A.transformed.2, contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
+
+#no main effect of species or interactions...species responded similarly during the recovery period...
+
+#merge the drought and recovery subsets...?
 
 #separatation by species
 
+drad.phys.2<-drad.phys %>% filter(!(Plant=='bogr19'))
+drad.phys.2$A.transformed <- sqrt((drad.phys.2$A + 1)) 
+
 #######b.gracilis########
-b.gracilis<-subset(drad.phys,Species=="B.gracilis")
-b.gracilis.drought<-subset(b.gracilis,subset=="Drought")
-b.gracilis.recovery<-subset(b.gracilis,subset.recovery=="Recovery")
+b.gracilis<-subset(drad.phys.2,Species=="B.gracilis")
+b.gracilis.drought<-subset(drought,Species=="B.gracilis")
+b.gracilis.recovery<-subset(recovery.2,Species=="B.gracilis")
 
 #total experiment
 full.b.gracilis<-lme(A~treatment*Week,random=~1|Block/Plant,correlation=corAR1(form=~1),data=b.gracilis,na.action = na.exclude)
 Anova(full.b.gracilis,type=3)
 
+mean.a.bogr<-aggregate(A~treatment,mean,data=b.gracilis)
+sd.a.bogr<-aggregate(A~treatment,sd,data=b.gracilis)
+
 #drought full model
-full.b.gracilis.drought<-lme(A~treatment*Week,random=~1|Block/Plant,correlation=corAR1(form=~1),data=b.gracilis.drought,na.action = na.exclude)
-Anova(full.b.gracilis.drought,type=3)
-#treatment weakly significant (p =.08)
+full.b.gracilis.drought<-lme(A.transformed~treatment*Week,random=~1|Block/Plant,data=b.gracilis.drought,na.action = na.exclude)
+Anova(full.b.gracilis.drought,contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
+#AIC(full.b.gracilis.drought)
+#treatment weakly significant (p =.059) week significant (P=0.016), interation is the most significant, negative interaction
 #treatment*week highly signiciant, suggests the effect of treatment depended on week,
 #and more generally thst the nfluence of the drought treatment increased through time
 
 #recovery full model
-full.b.gracilis.recovery<-lme(A~treatment*Week,random=~1|Block/Plant,correlation=corAR1(form=~1),data=b.gracilis.recovery,na.action = na.exclude)
-Anova(full.b.gracilis.recovery,type=3)
-# again a significnat treatment by week, suggesting treatment differences depended on the week.
+full.b.gracilis.recovery<-lme(A.transformed~treatment*Week,random=~1|Block/Plant,data=b.gracilis.recovery,na.action = na.exclude)
+Anova(full.b.gracilis.recovery,contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
+# again a significnat treatment by week, suggesting treatment impacts depended on the week.
 
 #Week1bogr
 bogr.week.1<-subset(b.gracilis,Week=="1",na.rm=TRUE)
-bogr.week1.lm.a<-lme(A~treatment,random=~1|Block/Plant,data=bogr.week.1,na.action = na.exclude)
+bogr.week1.lm.a<-lme(A.transformed~treatment,random=~1|Block/Plant,data=bogr.week.1,na.action = na.exclude)
 plot(resid(bogr.week1.lm.a))
 anova(bogr.week1.lm.a)
 #n.s.
@@ -84,261 +129,287 @@ anova(bogr.week1.lm.a)
 #Week3bogr
 bogr.week.3<-subset(b.gracilis,Week=="3",na.rm=TRUE)
 hist(bogr.week.3$A)
-bogr.week3.lm.a<-lme(A~treatment,random=~1|Block/Plant,data=bogr.week.3,na.action = na.exclude)
+bogr.week3.lm.a<-lme(A.transformed~treatment,random=~1|Block/Plant,data=bogr.week.3,na.action = na.exclude)
 plot(resid(bogr.week3.lm.a))
 anova(bogr.week3.lm.a)
 #n.s.
 
 #Week5bogr
 bogr.week.5<-subset(b.gracilis,Week=="5",na.rm=TRUE)
-bogr.week5.lm.a<-lme(A~treatment,random=~1|Block/Plant,data=bogr.week.5,na.action = na.exclude)
+bogr.week5.lm.a<-lme(A.transformed~treatment,random=~1|Block/Plant,data=bogr.week.5,na.action = na.exclude)
 anova(bogr.week5.lm.a)
-#n.s., p-value = .0956
+#n.s.
 
 #Week7bogr
 bogr.week.7<-subset(b.gracilis,Week=="7",na.rm=TRUE)
-bogr.week7.lm.a<-lme(A~treatment,random=~1|Block/Plant,data=bogr.week.7,na.action = na.exclude)
+bogr.week7.lm.a<-lme(A.transformed~treatment,random=~1|Block/Plant,data=bogr.week.7,na.action = na.exclude)
 anova(bogr.week7.lm.a)
 #*** significant
 
+mean.a.bogr.peak<-aggregate(A~treatment,mean,data=bogr.week.7)
+sd.a.bogr.peak<-aggregate(A~treatment,sd,data=bogr.week.7)
+
 #Week8bogr
 bogr.week.8<-subset(b.gracilis,Week=="8",na.rm=TRUE)
-bogr.week8.lm.a<-lme(A~treatment,random=~1|Block/Plant,data=bogr.week.8,na.action = na.exclude)
+bogr.week8.lm.a<-lme(A.transformed~treatment,random=~1|Block/Plant,data=bogr.week.8,na.action = na.exclude)
 anova(bogr.week8.lm.a)
 #n.s.
 
 #Week9bogr
 bogr.week.9<-subset(b.gracilis,Week=="9",na.rm=TRUE)
-bogr.week9.lm.a<-lme(A~treatment,random=~1|Block/Plant,data=bogr.week.9,na.action = na.exclude)
+bogr.week9.lm.a<-lme(A.transformed~treatment,random=~1|Block/Plant,data=bogr.week.9,na.action = na.exclude)
 anova(bogr.week9.lm.a)
 #n.s.
 
 #Week10bogr
 bogr.week.10<-subset(b.gracilis,Week=="10",na.rm=TRUE)
-bogr.week10.lm.a<-lme(A~treatment,random=~1|Block/Plant,data=bogr.week.10,na.action = na.exclude)
+bogr.week10.lm.a<-lme(A.transformed~treatment,random=~1|Block/Plant,data=bogr.week.10,na.action = na.exclude)
 anova(bogr.week10.lm.a)
 #n.s.
 
 #Week11bogr
 bogr.week.11<-subset(b.gracilis,Week=="11",na.rm=TRUE)
-bogr.week11.lm.a<-lme(A~treatment,random=~1|Block/Plant,data=bogr.week.11,na.action = na.exclude)
+bogr.week11.lm.a<-lme(A.transformed~treatment,random=~1|Block/Plant,data=bogr.week.11,na.action = na.exclude)
 anova(bogr.week11.lm.a)
 #n.s.
 #one week to recover at the leaf level
 
 #####A.gerardii######
-A.gerardii<-subset(drad.phys,Species=="A.gerardii")
+A.gerardii<-subset(drad.phys.2,Species=="A.gerardii")
 A.gerardii.drought<-subset(A.gerardii,subset=="Drought")
 A.gerardii.recovery<-subset(A.gerardii,subset.recovery=="Recovery")
 
-full.a.gerardii<-lme(A~treatment*Week,random=~1|Block/Plant,data=A.gerardii,na.action = na.exclude)
-Anova(full.a.gerardii,type=3)
+full.a.gerardii<-lme(A.transformed~treatment*Week,random=~1|Block/Plant,data=A.gerardii,na.action = na.exclude)
+Anova(full.a.gerardii,contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
 #only treatment signficant in full model
 
+mean.a.andro<-aggregate(A~treatment,mean,data=A.gerardii)
+sd.a.andro<-aggregate(A~treatment,sd,data=A.gerardii)
+
+
 #drought full model
-full.A.gerardii.drought<-lme(A~treatment*Week,random=~1|Block/Plant,data=A.gerardii.drought,na.action = na.exclude)
-Anova(full.A.gerardii.drought,type=3)
+full.A.gerardii.drought<-lme(A.transformed~treatment*Week,random=~1|Block/Plant,data=A.gerardii.drought,na.action = na.exclude)
+Anova(full.A.gerardii.drought,contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
+
 #treatment not significant
+#week not significant 
 #treatment*week signiciant, sugegsting the influence drought depended on week, and more specifically
 #that the impacts of the drought treatment increased with time
 
 #recovery full model
-full.A.gerardii.recovery<-lme(A~treatment*Week,random=~1|Block/Plant,data=A.gerardii.recovery,na.action = na.exclude)
-Anova(full.A.gerardii.recovery,type=3)
+full.A.gerardii.recovery<-lme(A.transformed~treatment*Week,random=~1|Block/Plant,data=A.gerardii.recovery,na.action = na.exclude)
+Anova(full.A.gerardii.recovery,contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
 #treatment*week significant, suggesting treatment differences dimished through time
 
 #week1.andro
 andro.week.1.a<-subset(A.gerardii,Week=="1",na.rm=TRUE)
-andro.week1.lm.a<-lme(A~treatment,random=~1|Block/Plant,data=andro.week.1.a,na.action = na.exclude)
+andro.week1.lm.a<-lme(A.transformed~treatment,random=~1|Block/Plant,data=andro.week.1.a,na.action = na.exclude)
 anova(andro.week1.lm.a)
 #n.s.
 
 #week3.andro
 andro.week.3.a<-subset(A.gerardii,Week=="3",na.rm=TRUE)
-andro.week3.lm.a<-lme(A~treatment,random=~1|Block/Plant,data=andro.week.3.a,na.action = na.exclude)
+andro.week3.lm.a<-lme(A.transformed~treatment,random=~1|Block/Plant,data=andro.week.3.a,na.action = na.exclude)
 anova(andro.week3.lm.a)
 #n.s.
 
 #week5.andro
 andro.week.5.a<-subset(A.gerardii,Week=="5",na.rm=TRUE)
-andro.week5.lm.a<-lme(A~treatment,random=~1|Block/Plant,data=andro.week.5.a,na.action = na.exclude)
+andro.week5.lm.a<-lme(A.transformed~treatment,random=~1|Block/Plant,data=andro.week.5.a,na.action = na.exclude)
 anova(andro.week5.lm.a)
 #**signiciant
 
 #week7.andro
 andro.week.7.a<-subset(A.gerardii,Week=="7",na.rm=TRUE)
-andro.week7.lm.a<-lme(A~treatment,random=~1|Block/Plant,data=andro.week.7.a,na.action = na.exclude)
+andro.week7.lm.a<-lme(A.transformed~treatment,random=~1|Block/Plant,data=andro.week.7.a,na.action = na.exclude)
 anova(andro.week7.lm.a)
 #***signiciant
 
+mean.a.andro.peak<-aggregate(A~treatment,mean,data=andro.week.7.a)
+sd.a.andro.peak<-aggregate(A~treatment,sd,data=andro.week.7.a)
+
+
 #week8.andro
 andro.week.8.a<-subset(A.gerardii,Week=="8",na.rm=TRUE)
-andro.week8.lm.a<-lme(A~treatment,random=~1|Block/Plant,data=andro.week.8.a,na.action = na.exclude)
+andro.week8.lm.a<-lme(A.transformed~treatment,random=~1|Block/Plant,data=andro.week.8.a,na.action = na.exclude)
 anova(andro.week8.lm.a)
 #**signiciant
 
 #week9.andro
 andro.week.9.a<-subset(A.gerardii,Week=="9",na.rm=TRUE)
-andro.week9.lm.a<-lme(A~treatment,random=~1|Block/Plant,data=andro.week.9.a,na.action = na.exclude)
+andro.week9.lm.a<-lme(A.transformed~treatment,random=~1|Block/Plant,data=andro.week.9.a,na.action = na.exclude)
 anova(andro.week9.lm.a)
 #n.s.
 
 #week10.andro
 andro.week.10.a<-subset(A.gerardii,Week=="10",na.rm=TRUE)
-andro.week10.lm.a<-lme(A~treatment,random=~1|Block/Plant,data=andro.week.10.a,na.action = na.exclude)
+andro.week10.lm.a<-lme(A.transformed~treatment,random=~1|Block/Plant,data=andro.week.10.a,na.action = na.exclude)
 anova(andro.week10.lm.a)
 #n.s.
 
 #week11.andro
 andro.week.11.a<-subset(A.gerardii,Week=="11",na.rm=TRUE)
-andro.week11.lm.a<-lme(A~treatment,random=~1|Block/Plant,data=andro.week.11.a,na.action = na.exclude)
+andro.week11.lm.a<-lme(A.transformed~treatment,random=~1|Block/Plant,data=andro.week.11.a,na.action = na.exclude)
 anova(andro.week11.lm.a)
 #n.s.
-#two weeks for andorpogon to recover to level
+
+#about two weeks for andorpogon to recover to levels of well-watered controls
 
 
 #####P.smithii##########
-P.smithii<-subset(drad.phys,Species=="P.smithii")
+P.smithii<-subset(drad.phys.2,Species=="P.smithii")
 p.smithii.drought<-subset(P.smithii,subset=="Drought")
 p.smithii.recovery<-subset(P.smithii,subset.recovery=="Recovery")
 
-full.p.smithii<-lme(A~treatment*Week,random=~1|Block/Plant,data=P.smithii,na.action = na.exclude)
-Anova(full.p.smithii,type=3)
+full.p.smithii<-lme(A.transformed~treatment*Week,random=~1|Block/Plant,data=P.smithii,na.action = na.exclude)
+Anova(full.p.smithii,contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
 #everything significant
 
+mean.a.pasm<-aggregate(A~treatment,mean,data=P.smithii)
+sd.a.pasm<-aggregate(A~treatment,sd,data=P.smithii)
+
 #drought full model
-full.p.smithii.drought<-lme(A~treatment*Week,random=~1|Block/Plant,data=p.smithii.drought,na.action = na.exclude)
-Anova(full.p.smithii.drought)
+full.p.smithii.drought<-lme(A.transformed~treatment*Week,random=~1|Block/Plant,data=p.smithii.drought,na.action = na.exclude)
+Anova(full.p.smithii.drought,contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
+
 #everything significant
 #most important the interaction is significant
 
 #recovery full model
-full.p.smithii.recovery<-lme(A~treatment*Week,random=~1|Block/Plant,data=p.smithii.recovery,na.action = na.exclude)
-Anova(full.p.smithii.recovery)
+full.p.smithii.recovery<-lme(A.transformed~treatment*Week,random=~1|Block/Plant,data=p.smithii.recovery,na.action = na.exclude)
+Anova(full.p.smithii.recovery, contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
 #signiciant interaction; treatment differences depended on the week of the recovery
 
 #week1.pasm
 pasm.week.1<-subset(P.smithii,Week=="1",na.rm=TRUE)
-pasm.week1.lm.a<-lme(A~treatment,data=pasm.week.1,random=~1|Block/Plant,na.action = na.exclude)
+pasm.week1.lm.a<-lme(A.transformed~treatment,data=pasm.week.1,random=~1|Block/Plant,na.action = na.exclude)
 anova(pasm.week1.lm.a)
-#n.s., but .054, worth mentioning
+#n.s., but .055, worth mentioning that even at the very beginning of the drought, differences were emerging
 
 #week3.pasm
 pasm.week.3<-subset(P.smithii,Week=="3",na.rm=TRUE)
-pasm.week3.lm.a<-lme(A~treatment,data=pasm.week.3,random=~1|Block/Plant,na.action = na.exclude)
+pasm.week3.lm.a<-lme(A.transformed~treatment,data=pasm.week.3,random=~1|Block/Plant,na.action = na.exclude)
 anova(pasm.week3.lm.a)
-#extremely signiciant
+#signiciant
 
 #week5.pasm
 pasm.week.5<-subset(P.smithii,Week=="5",na.rm=TRUE)
-pasm.week5.lm.a<-lme(A~treatment,data=pasm.week.5,random=~1|Block/Plant,na.action = na.exclude)
+pasm.week5.lm.a<-lme(A.transformed~treatment,data=pasm.week.5,random=~1|Block/Plant,na.action = na.exclude)
 anova(pasm.week5.lm.a)
 #signiciant 
 
 #week7.pasm
 pasm.week.7<-subset(P.smithii,Week=="7",na.rm=TRUE)
-pasm.week7.lm.a<-lme(A~treatment,data=pasm.week.7,random=~1|Block/Plant,na.action = na.exclude)
+pasm.week7.lm.a<-lme(A.transformed~treatment,data=pasm.week.7,random=~1|Block/Plant,na.action = na.exclude)
 anova(pasm.week7.lm.a)
 #significant
 
+mean.a.pasm.peak<-aggregate(A~treatment,mean,data=pasm.week.7)
+sd.a.pasm.peak<-aggregate(A~treatment,sd,data=pasm.week.7)
+
 #week8.pasm
 pasm.week.8<-subset(P.smithii,Week=="8",na.rm=TRUE)
-pasm.week8.lm.a<-lme(A~treatment,data=pasm.week.8,random=~1|Block/Plant,na.action = na.exclude)
+pasm.week8.lm.a<-lme(A.transformed~treatment,data=pasm.week.8,random=~1|Block/Plant,na.action = na.exclude)
 anova(pasm.week8.lm.a)
-#signiciant 
+#signiciant, though weakened 
 
 #week9.pasm
 pasm.week.9<-subset(P.smithii,Week=="9",na.rm=TRUE)
-pasm.week9.lm.a<-lme(A~treatment,data=pasm.week.9,random=~1|Block/Plant,na.action = na.exclude)
+pasm.week9.lm.a<-lme(A.transformed~treatment,data=pasm.week.9,random=~1|Block/Plant,na.action = na.exclude)
 anova(pasm.week9.lm.a)
-#signiciant, but because of a switch (PD higher than C). previously droughted outperfermoed controls
+#signiciant, but because of a switch (PD higher than C). previously droughted outperfermoed controls...
 
 #week10.pasm
 pasm.week.10<-subset(P.smithii,Week=="10",na.rm=TRUE)
-pasm.week10.lm.a<-lme(A~treatment,data=pasm.week.10,random=~1|Block/Plant,na.action = na.exclude)
+summary(pasm.week.10)
+pasm.week10.lm.a<-lme(A.transformed~treatment,data=pasm.week.10,random=~1|Block/Plant,na.action = na.exclude)
 anova(pasm.week10.lm.a)
-summary(pasm.week10.lm.a)
-m<-aggregate(A~treatment,mean,data=pasm.week.10)
-s<-aggregate(A~treatment,sd,data=pasm.week.10)
-#n.s. need to double check this
+#n.s. event he it looks like they should be
 
 
 #week11.pasm
 pasm.week.11<-subset(P.smithii,Week=="11",na.rm=TRUE)
-pasm.week11.lm.a<-lme(A~treatment,data=pasm.week.11,random=~1|Block/Plant,na.action = na.exclude)
+pasm.week11.lm.a<-lme(A.transformed~treatment,data=pasm.week.11,random=~1|Block/Plant,na.action = na.exclude)
 anova(pasm.week11.lm.a)
 #significant
 
 ######B.eriopoda########
-B.eriopoda<-subset(drad.phys,Species=="B.eriopoda")
+B.eriopoda<-subset(drad.phys.2,Species=="B.eriopoda")
 B.eriopoda.drought<-subset(B.eriopoda,subset=="Drought")
 B.eriopoda.recovery<-subset(B.eriopoda,subset.recovery=="Recovery")
 
 full.B.eriopoda<-lme(A~treatment*Week,random=~1|Block/Plant,data=B.eriopoda,na.action = na.exclude)
-Anova(full.a.gerardii,type=3)
+Anova(full.B.eriopoda,contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
 #treatment signiciant, treatment*week not
 
+mean.a.boer<-aggregate(A~treatment,mean,data=B.eriopoda)
+sd.a.boer<-aggregate(A~treatment,sd,data=B.eriopoda)
+
 #drought full model
-full.B.eriopoda.drought<-lme(A~treatment*Week,random=~1|Block/Plant,data=B.eriopoda.drought,na.action = na.exclude)
-anova(full.B.eriopoda.drought)
+full.B.eriopoda.drought<-lme(A.transformed~treatment*Week,random=~1|Block/Plant,data=B.eriopoda.drought,na.action = na.exclude)
+Anova(full.B.eriopoda.drought,contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
 #treatment by week interaction significant, impact of drought treatment increased through time
 
 #recovery full model
 full.B.eriopoda.recovery<-lme(A~treatment*Week,random=~1|Block/Plant,data=B.eriopoda.recovery,na.action = na.exclude)
-anova(full.B.eriopoda.recovery)
+Anova(full.B.eriopoda.recovery,contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
 #treatment by week interactions signficant, suggesting treatment differences weakend through time
 
 #week1.boer
 boer.week.1<-subset(B.eriopoda,Week=="1",na.rm=TRUE)
-boer.week1.lm.a<-lme(A~treatment,data=boer.week.1,random=~1|Block/Plant,na.action = na.exclude)
+boer.week1.lm.a<-lme(A.transformed~treatment,data=boer.week.1,random=~1|Block/Plant,na.action = na.exclude)
 anova(boer.week1.lm.a)
 #n.s.
 
 #week3.boer
 boer.week.3<-subset(B.eriopoda,Week=="1",na.rm=TRUE)
-boer.week3.lm.a<-lme(A~treatment,data=boer.week.3,random=~1|Block/Plant,na.action = na.exclude)
+boer.week3.lm.a<-lme(A.transformed~treatment,data=boer.week.3,random=~1|Block/Plant,na.action = na.exclude)
 anova(boer.week3.lm.a)
 #n.s.
 
 #week5.boer
 boer.week.5<-subset(B.eriopoda,Week=="5",na.rm=TRUE)
-boer.week5.lm.a<-lme(A~treatment,data=boer.week.5,random=~1|Block/Plant,na.action = na.exclude)
+boer.week5.lm.a<-lme(A.transformed~treatment,data=boer.week.5,random=~1|Block/Plant,na.action = na.exclude)
 anova(boer.week5.lm.a)
 #signiciant
 
 #week7.boer
 boer.week.7<-subset(B.eriopoda,Week=="7",na.rm=TRUE)
-boer.week7.lm.a<-lme(A~treatment,data=boer.week.7,random=~1|Block/Plant,na.action = na.exclude)
+boer.week7.lm.a<-lme(A.transformed~treatment,data=boer.week.7,random=~1|Block/Plant,na.action = na.exclude)
 anova(boer.week7.lm.a)
 #signiciant
 
+mean.a.boer.peak<-aggregate(A~treatment,mean,data=boer.week.7)
+sd.a.boer.peak<-aggregate(A~treatment,sd,data=boer.week.7)
+
 #week8.boer
 boer.week.8<-subset(B.eriopoda,Week=="8",na.rm=TRUE)
-boer.week8.lm.a<-lme(A~treatment,data=boer.week.8,random=~1|Block/Plant,na.action = na.exclude)
+boer.week8.lm.a<-lme(A.transformed~treatment,data=boer.week.8,random=~1|Block/Plant,na.action = na.exclude)
 anova(boer.week8.lm.a)
 #signiciant
 
 #week9.boer
 boer.week.9<-subset(B.eriopoda,Week=="9",na.rm=TRUE)
-boer.week9.lm.a<-lme(A~treatment,data=boer.week.9,random=~1|Block/Plant,na.action = na.exclude)
+boer.week9.lm.a<-lme(A.transformed~treatment,data=boer.week.9,random=~1|Block/Plant,na.action = na.exclude)
 anova(boer.week9.lm.a)
 #n.s.
 
 #week10.boer
 boer.week.10<-subset(B.eriopoda,Week=="10",na.rm=TRUE)
-boer.week10.lm.a<-lme(A~treatment,data=boer.week.10,random=~1|Block/Plant,na.action = na.exclude)
+boer.week10.lm.a<-lme(A.transformed~treatment,data=boer.week.10,random=~1|Block/Plant,na.action = na.exclude)
 anova(boer.week10.lm.a)
 #n.s.
 
 #week11.boer
 boer.week.11<-subset(B.eriopoda,Week=="11",na.rm=TRUE)
-boer.week11.lm.a<-lme(A~treatment,data=boer.week.11,random=~1|Block/Plant,na.action = na.exclude)
+boer.week11.lm.a<-lme(A.transformed~treatment,data=boer.week.11,random=~1|Block/Plant,na.action = na.exclude)
 anova(boer.week11.lm.a)
 
 #check to see abot the relationship between flor and A
-A.phips2.model.lm<-lm(A~phips2,data=drad.phys,na.action = na.exclude)
+A.phips2.model.lm<-lm(A~phips2,data=drad.phys.2,na.action = na.exclude)
 summary(A.phips2.model.lm)
 #R-square=.61
+plot(A~phips2,data=drad.phys.2)
 
 A.phips2.model<-lme(A~phips2*Species,random=~1|Block/Plant,data=drad.phys,na.action = na.exclude)
 Anova(A.phips2.model,type=3)
@@ -649,119 +720,184 @@ head(drad.wp)
 hist(drad.wp$mpa)
 #full
 
-full.wp<-lme(mpa~species*treatment*Time,random=~1|Block/plant,data=drad.wp,na.action = na.exclude)
-Anova(full.wp,type=3)
-#significant three-way interaction
+full.wp<-lme(water.potential~species*treatment*Time,random=~1|Block/plant,data=drad.wp,na.action = na.exclude)
+Anova(full.wp,contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
+#significant three-way interaction, and singiciant main effect of species; reflecting baseline difference in their
+#water use physiology.
 
-#a.gerardii
+plot(full.wp) #residuals versus fitted has fairly homegenous variance in the drought model
+qqnorm(resid(full.wp)) #some noise at the tails
+qqline(resid(full.wp))
+shapiro.test(resid(full.wp)) #still bad, look into data
+hist(resid(full.wp))
+
+#try a transformation
+drad.wp$water.potential.transformed <- sqrt(drad.wp$water.potential)
+full.wp.transformed<-lme(water.potential.transformed~species*treatment*Time,random=~1|Block/plant,data=drad.wp,na.action = na.exclude)
+qqnorm(resid(full.wp.transformed)) #some noise at the tails
+qqline(resid(full.wp.transformed))
+shapiro.test(resid(full.wp.transformed)) #fixes it
+hist(resid(full.wp.transformed))
+
+#so what does this tell us
+Anova(full.wp.transformed,contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
+#three way interaction is significant, look at each species separately 
+
+#####a.gerardii######
 andro.wp<-subset(drad.wp,species=="A.gerardii",na.rm=TRUE)
 summary(andro.wp)
-andro.wp.full<-lme(mpa~treatment*Time,random=~1|Block/plant,data=andro.wp,na.action = na.exclude)
-Anova(andro.wp.full,type=3)
-#signficiant treatment*time interactions
+andro.wp.full<-lme(water.potential.transformed~treatment*Time,random=~1|Block/plant,data=andro.wp,na.action = na.exclude)
+Anova(andro.wp.full,contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
+shapiro.test(resid(andro.wp.full))
+#signficiant treatment*time interactions, implying the impact of the treatment depended on the timing
 
+#get mean wp of control
+mean.wp.andro<-aggregate(mpa~treatment,mean,data=andro.wp)
+sd.wp.andro<-aggregate(mpa~treatment,sd,data=andro.wp)
+#mean: -0.8, sd:0.27
 
 #week1.andro
 andro.wp.week.1<-subset(andro.wp,Week=="1",na.rm=TRUE)
-pasm.week1.lme.wp<-lm(mpa ~treatment,random=~1|Block/plant,data=andro.wp.week.1,na.rm=TRUE)
-anova(pasm.week1.lme.wp)
+andro.week1.lme.wp<-lme(water.potential.transformed ~ treatment,random=~1|Block/plant,data=andro.wp.week.1,na.action = na.exclude)
+anova(andro.week1.lme.wp)
+shapiro.test(resid(andro.week1.lme.wp)) #0.04
+hist(resid(andro.week1.lme.wp)) #not the most normal distribution. still, groups mostly identical
 #not significant
 
 #week7.andro
 andro.wp.week.7<-subset(andro.wp,Week=="7",na.rm=TRUE)
-andro.wp.week.7.lme.wp<-lm(mpa ~treatment,random=~1|Block/plant,data=andro.wp.week.7,na.rm=TRUE)
-anova(andro.wp.week.7.lme.wp)
+andro.wp.week.7.lme.wp<-lme(water.potential.transformed ~treatment,random=~1|Block/plant,data=andro.wp.week.7,na.rm=TRUE)
+anova(andro.wp.week.7.lme.wp) #significant
+shapiro.test(resid(andro.wp.week.7.lme.wp)) #normal
 #highly signiciant 
+
+#mean at peak
+mean.wp.andro.peak<-aggregate(mpa~treatment,mean,data=andro.wp.week.7)
+sd.wp.andro.peak<-aggregate(mpa~treatment,sd,data=andro.wp.week.7)
 
 #week11.andro
 andro.wp.week.11<-subset(andro.wp,Week=="11",na.rm=TRUE)
-andro.wp.week.11.lme.wp<-lm(mpa ~treatment,random=~1|Block/plant,data=andro.wp.week.11,na.rm=TRUE)
+andro.wp.week.11.lme.wp<-lme(water.potential.transformed ~treatment,random=~1|Block/plant,data=andro.wp.week.11,na.rm=TRUE)
 anova(andro.wp.week.11.lme.wp)
+shapiro.test(resid(andro.wp.week.11.lme.wp))
 #not significant, p=.16
 
 ##B.gracilis
 bogr.wp<-subset(drad.wp,species=="B.gracilis",na.rm=TRUE)
 summary(bogr.wp)
-bogr.wp.full<-lme(mpa~treatment*Time,random=~1|Block/plant,data=andro.wp,na.action = na.exclude)
-Anova(andro.wp.full,type=3)
+bogr.wp.full<-lme(water.potential.transformed~treatment*Time,random=~1|Block/plant,data=andro.wp,na.action = na.exclude)
+Anova(andro.wp.full,contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
+shapiro.test(resid(bogr.wp.full)) #normal
 #signiciant treatmnt*time interaction
 
-?MixMod
+#mean of control
+mean.wp.bogr.control<-aggregate(mpa~treatment,mean,data=bogr.wp)
+sd.wp.bogr.control<-aggregate(mpa~treatment,sd,data=bogr.wp)
+#mean: -1.66, sd: 0.41
 
 #week1.bogr
 bogr.wp.week.1<-subset(bogr.wp,Week=="1",na.rm=TRUE)
-bogr.week1.lme.wp<-lm(mpa ~ treatment,random=~1|Block/plant,data=bogr.wp.week.1,na.rm=TRUE)
+bogr.week1.lme.wp<-lme(water.potential.transformed ~ treatment,random=~1|Block/plant,data=bogr.wp.week.1,na.action = na.exclude)
 anova(bogr.week1.lme.wp)
+shapiro.test(resid(bogr.wp.full))
 #not significant, p=.64
 
 #week7.bogr
 bogr.wp.week.7<-subset(bogr.wp,Week=="7",na.rm=TRUE)
-bogr.wp.week.7.lme.wp<-lm(mpa ~treatment,random=~1|Block/plant,data=bogr.wp.week.7,na.rm=TRUE)
+bogr.wp.week.7.lme.wp<-lme(water.potential.transformed~treatment,random=~1|Block/plant,data=bogr.wp.week.7,na.action = na.exclude)
 anova(bogr.wp.week.7.lme.wp)
-#highly signiciant, 7.011e-07 ***
+shapiro.test(resid(bogr.wp.week.7.lme.wp))
+#highly signiciant
+
+#look at mean WP
+mean.wp.bogr.peak<-aggregate(mpa~treatment,mean,data=bogr.wp.week.7)
+sd.wp.bogr.peak<-aggregate(mpa~treatment,sd,data=bogr.wp.week.7)
+#mean: -3.52, sd= 0.49
 
 #week11.bogr
 bogr.wp.week.11<-subset(bogr.wp,Week=="11",na.rm=TRUE)
-bogr.wp.week.11.lme.wp<-lm(mpa ~treatment,random=~1|Block/plant,data=bogr.wp.week.11,na.rm=TRUE)
+bogr.wp.week.11.lme.wp<-lme(water.potential.transformed ~treatment,random=~1|Block/plant,data=bogr.wp.week.11,na.action = na.exclude)
 anova(bogr.wp.week.11.lme.wp)
+shapiro.test(resid(bogr.wp.week.11.lme.wp))
 #not significant, p = .9101
 
-##B.eriopoda
+##B.eriopoda########
 boer.wp<-subset(drad.wp,species=="B.eriopoda",na.rm=TRUE)
 summary(boer.wp)
-boer.wp.full<-lme(mpa~treatment*Time,random=~1|Block/plant,data=boer.wp,na.action = na.exclude)
-Anova(boer.wp.full,type=3)
+boer.wp.full<-lme(water.potential.transformed~treatment*Time,random=~1|Block/plant,data=boer.wp,na.action = na.exclude)
+Anova(boer.wp.full,contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
+shapiro.test(resid(boer.wp.full)) #normal
 #significant treatment*time interaction
 
-?MixMod
+#mean water potential
+mean.wp.boer<-aggregate(mpa~treatment,mean,data=boer.wp)
+sd.wp.boer<-aggregate(mpa~treatment,sd,data=boer.wp)
+#mean of control: -0.98
 
 #week1.boer
 boer.wp.week.1<-subset(boer.wp,Week=="1",na.rm=TRUE)
-boer.week1.lme.wp<-lm(mpa ~treatment,random=~1|Block/plant,data=boer.wp.week.1,na.rm=TRUE)
+boer.week1.lme.wp<-lme(water.potential.transformed ~treatment,random=~1|Block/plant,data=boer.wp.week.1,na.action = na.exclude)
 anova(boer.week1.lme.wp)
+shapiro.test(resid(boer.week1.lme.wp)) #normal
 #not significant, 0.6438
 
 #week7.boer
 boer.wp.week.7<-subset(boer.wp,Week=="7",na.rm=TRUE)
-boer.wp.week.7.lme.wp<-lm(mpa ~treatment,random=~1|Block/plant,data=boer.wp.week.7,na.rm=TRUE)
+boer.wp.week.7.lme.wp<-lme(water.potential.transformed~treatment,random=~1|Block/plant,data=boer.wp.week.7,na.action = na.exclude)
 anova(boer.wp.week.7.lme.wp)
-#highly signiciant, 1.071e-07 ***
+shapiro.test(resid(boer.wp.week.7.lme.wp)) 
+#highly signiciant
+
+#look at mean wp at peak drought
+mean.wp.boer.peak<-aggregate(mpa~treatment,mean,data=boer.wp.week.7)
+sd.wp.boer.peak<-aggregate(mpa~treatment,sd,data=boer.wp.week.7)
+#peak drought: -2.92, sd=0.38
 
 #week11.boer
 boer.wp.week.11<-subset(boer.wp,Week=="11",na.rm=TRUE)
-boer.wp.week.11.lme.wp<-lm(mpa ~treatment,random=~1|Block/plant,data=boer.wp.week.11,na.rm=TRUE)
+boer.wp.week.11.lme.wp<-lme(water.potential.transformed ~treatment,random=~1|Block/plant,data=boer.wp.week.11,na.action = na.exclude)
 anova(boer.wp.week.11.lme.wp)
-#not significant, p = 0.4823
+shapiro.test(resid(boer.wp.week.11.lme.wp)) 
+#not significant
 
 ##P.smithii
 pasm.wp<-subset(drad.wp,species=="P.smithii",na.rm=TRUE)
 summary(pasm.wp)
-pasm.wp.full<-lme(mpa~treatment*Time,random=~1|Block/plant,data=pasm.wp,na.action = na.exclude)
-Anova(pasm.wp.full,type=3)
+pasm.wp.full<-lme(water.potential.transformed~treatment*Time,random=~1|Block/plant,data=pasm.wp,na.action = na.exclude)
+Anova(pasm.wp.full,contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
+shapiro.test(resid(pasm.wp.full))
 #Signiciant treatment*time interaction 
 
-?MixMod
+#look at mean wp
+mean.wp.pasm<-aggregate(mpa~treatment,mean,data=pasm.wp)
+sd.wp.pasm<-aggregate(mpa~treatment,sd,data=pasm.wp)
 
 #week1.pasm
 pasm.wp.week.1<-subset(pasm.wp,Week=="1",na.rm=TRUE)
-pasm.week1.lme.wp<-lme(mpa ~ treatment,random=~1|Block/plant,data=pasm.wp.week.1,na.action = na.exclude)
+pasm.week1.lme.wp<-lme(water.potential.transformed~ treatment,random=~1|Block/plant,data=pasm.wp.week.1,na.action = na.exclude)
 anova(pasm.week1.lme.wp)
-#not significant, 0.7126
+shapiro.test(resid(pasm.week1.lme.wp)) #barely normal
+#not significant
 
 #week7.pasm
 pasm.wp.week.7<-subset(pasm.wp,Week=="7",na.rm=TRUE)
-pasm.wp.week.7.lme.wp<-lm(mpa ~ treatment,random=~1|Block/plant,data=pasm.wp.week.7,na.action = na.exclude)
+pasm.wp.week.7.lme.wp<-lme(water.potential.transformed ~ treatment,random=~1|Block/plant,data=pasm.wp.week.7,na.action = na.exclude)
 anova(pasm.wp.week.7.lme.wp)
-#highly signiciant, 5.616e-11 ***
+shapiro.test(resid(pasm.wp.week.7.lme.wp)) #normal
+#highly signiciant
+
+mean.wp.pasm.peak<-aggregate(mpa~treatment,mean,data=pasm.wp.week.7)
+sd.wp.pasm.peak<-aggregate(mpa~treatment,sd,data=pasm.wp.week.7)
 
 #week11.pasm
 pasm.wp.week.11<-subset(pasm.wp,Week=="11",na.rm=TRUE)
-pasm.wp.week.11.lme.wp<-lm(mpa ~ treatment,random=~1|Block/plant,data=pasm.wp.week.11,na.action = na.exclude)
+pasm.wp.week.11.lme.wp<-lm(water.potential.transformed ~ treatment,random=~1|Block/plant,data=pasm.wp.week.11,na.action = na.exclude)
 anova(pasm.wp.week.11.lme.wp)
-#not significant, p = 0.1517
+shapiro.test(resid(pasm.wp.week.11.lme.wp)) #normal
+#not significant
 
 
-#specific leaf area
+#######specific leaf area#########
 
 drad.sla<-read.csv(file.choose(),header=TRUE)
 head(drad.sla)
@@ -778,8 +914,6 @@ summary(andro.sla)
 andro.sla.full<-lme(SLA~Treatment*Time,random=~1|Block/Plant,data=andro.sla,na.action = na.exclude)
 Anova(andro.sla.full,type=3)
 #nothing signiciant
-
-?MixMod
 
 #week7.andro
 andro.wp.week.7<-subset(andro.sla,Time=="Peak drought",na.rm=TRUE)
@@ -799,8 +933,6 @@ summary(bogr.sla)
 bogr.sla.full<-lme(SLA~Treatment*Time,random=~1|Plant,data=bogr.sla,na.action = na.exclude)
 Anova(bogr.sla.full,type=3)
 #Treatment*time signiciant
-
-?MixMod
 
 #week7.bogr
 bogr.wp.week.7<-subset(bogr.sla,Time=="Peak drought",na.rm=TRUE)
@@ -894,49 +1026,6 @@ anova(pasm.root.shoot.full.lme)
 dodge <- position_dodge(.8)
 head(drad.phys)
 drad.phys$wue<-drad.phys$A/drad.phys$E
-#ggplot
-summary(merge.biomass)
-library(ggplot2)
-head(controls.averaged.merged)
-ggplot(drad.phys,aes(Region,wue,color=treatment,na.rm=TRUE)) +
-  #scale_x_discrete(labels=c("1" = "Mesic prairie", "2"="Mixed-grass prairie",
-                           # "3" = "Semi-arid steppe","4"="Desert grassland")) +
-  #geom_vline(xintercept = 7:11,color="gray80")  +
-  #stat_summary(geom="line",fun.y="mean",position=dodge) +
-  stat_summary(geom="bar",fun.y="mean",position=dodge) +
-  #geom_line() +
-  #geom_errorbar(aes(ymin=a.perc.x-a.perc.y, ymax=a.perc.x + a.perc.y), width=.5,position=dodge) +
-  #geom_smooth(method = "lm", formula = y ~ poly(x, 2), size = 1,se=FALSE,color="red")
-  facet_wrap(~Region) +
-  #stat_summary(geom="point",fun.y="mean",size=4,color="black",fill="white") +
-  geom_hline(yintercept = 0) +
-  stat_summary(geom="point",fun.y="mean",size=3.5,color="black",aes(fill=as.factor(Species)),shape=21,position=dodge) +
-  scale_fill_manual(values=c('DR'='red','C'='blue'),name="") +
-  #geom_errorbar(limits,width=0.1,position = dodge)
-  #scale_fill_manual(values=c('B.gracilis'='black','A.gerardii'='white'),name="Region",
-  #labels=c('B.gracilis'='Semi-arid steppe','A.gerardii'='Mesic prairie')) +
-  #ylab("Area per leaf (cm^2") +
-  #ylab(bquote('Area per leaf ('*cm^2*')')) +
-  #scale_x_discrete(labels=c("1" = "Mesic prairie", "2"="Mixed-grass prairie",
-                           # "3" = "Semi-arid steppe","4"="Desert grassland")) +
-  ylab(bquote('Net photosynthesis ('*mu~ 'mol' ~CO[2]~ m^-2~s^-1*')')) +
-  facet_wrap(~plotid,labeller=hospital_labeller,nrow=2) +
-  xlab("Week") +
-  #coord_flip() +
-  theme(
-    axis.text = element_text(color='black',size=14),
-    axis.title = element_text(color='black',size=18),
-    axis.ticks = element_line(color='black'),
-    legend.title = element_text(size=20),
-    legend.text = element_text(size=17),
-    legend.position = c(.075,.1),
-    legend.key = element_blank(),
-    panel.background = element_rect(fill=NA),
-    panel.border = element_blank(), #make the borders clear in prep for just have two axes
-    axis.line.x = element_line(colour = "black"),
-    axis.line.y = element_line(colour = "black"))
-
-ggsave("drad_A_plot.pdf",width = 8, height = 6, units = c("in"))
 
 
 limits <- aes(ymin=root.shoot.x-root.shoot.y, ymax=root.shoot.x  + root.shoot.y)
