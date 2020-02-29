@@ -6,8 +6,95 @@ library(nlme)
 library(car)
 library(dplyr)
 library(fBasics)
+####GWC###########
+drad.gwc<-read.csv('G:/My Drive/Other projects/doe-drought-recovery/DOE_2019/data/drad_gwc_for_analysis.csv',header=TRUE)
+head(drad.gwc)
+View(drad.gwc)
+gwc.full<-lme(newgwc~Species*Treatment,random=~1|Pot,data=drad.gwc,na.action = na.exclude)
+hist(resid(gwc.full)) #normal
+anova(gwc.full)
+Anova(gwc.full, contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
+#significant treatment*species interaction. Look at separately
 
-#photosynthesis
+#A.gerardii
+andro.gwc<-subset(drad.gwc,Species=='A.gerardii')
+summary(andro.gwc)
+andro.gwc.lme<-lme(newgwc~Treatment*Day,random=~1|Pot,data=andro.gwc,na.action = na.exclude)
+hist(resid(andro.gwc.lme)) #looks normal
+Anova(andro.gwc.lme, contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
+#significnat treatment*time interaction
+
+#look at ranges for drought versus control
+control.andro.gwc <- subset(andro.gwc,Treatment=='C')
+summary(control.andro.gwc)
+#range = 49% to 37%
+#mean = 45%
+
+drought.andro.gwc <- subset(andro.gwc,Treatment=='DR')
+summary(drought.andro.gwc)
+#range = 52% to 22%
+#mean = 37%
+
+#b.gracilis
+bogr.gwc<-subset(drad.gwc,Species=='B.bracilis') #mistake in excel file with name
+summary(bogr.gwc)
+bogr.gwc.lme<-lme(newgwc~Treatment*Day,random=~1|Pot,data=bogr.gwc,na.action = na.exclude)
+hist(resid(bogr.gwc.lme)) #looks normal
+Anova(bogr.gwc.lme, contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
+#significnat treatment*time interaction
+
+#look at ranges for drought versus control
+control.bogr.gwc <- subset(bogr.gwc,Treatment=='C')
+summary(control.bogr.gwc)
+#range = 50% to 27%
+#mean = 43%
+
+drought.bogr.gwc <- subset(bogr.gwc,Treatment=='DR')
+summary(drought.bogr.gwc)
+#range = 18% to 49%
+#mean = 35%
+
+#boer
+boer.gwc<-subset(drad.gwc,Species=='B.eriopoda') #mistake in excel file with name
+summary(boer.gwc)
+boer.gwc.lme<-lme(newgwc~Treatment*Day,random=~1|Pot,data=boer.gwc,na.action = na.exclude)
+hist(resid(boer.gwc.lme)) #looks normal
+Anova(boer.gwc.lme, contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
+#significant treatment*time interaction
+
+#look at ranges for drought versus control
+control.boer.gwc <- subset(boer.gwc,Treatment=='C')
+summary(control.boer.gwc)
+#range = 52% to 35%
+#mean = 44%
+
+drought.boer.gwc <- subset(boer.gwc,Treatment=='DR')
+summary(drought.boer.gwc)
+#range = 25% to 49%
+#mean = 37%
+
+#pasm
+pasm.gwc<-subset(drad.gwc,Species=='P.smithii') #mistake in excel file with name
+summary(pasm.gwc)
+pasm.gwc.lme<-lme(newgwc~Treatment*Day,random=~1|Pot,data=pasm.gwc,na.action = na.exclude)
+hist(resid(pasm.gwc.lme)) #looks normal
+Anova(pasm.gwc.lme, contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
+#significant treatment*time interaction
+
+#look at ranges for drought versus control
+control.pasm.gwc <- subset(pasm.gwc,Treatment=='C')
+summary(control.pasm.gwc)
+#range = 30% to 49%
+#mean = 42%
+
+drought.pasm.gwc <- subset(pasm.gwc,Treatment=='DR')
+summary(drought.pasm.gwc)
+#range = 23% to 51%
+#mean = 36%
+
+
+
+####photosynthesis#######
 drad.phys<-read.csv('C:/Users/A02296270/Desktop/Side_projects/DOE/doe_greenhouse_experiment_data/DRAD_GAS_EXCHANGE.csv',header=TRUE)
 head(drad.phys)
 summary(drad.phys)
@@ -78,7 +165,7 @@ Anova(full.recovery.A.transformed.2, contrasts=list(topic=contr.sum, sys=contr.s
 drad.phys.2<-drad.phys %>% filter(!(Plant=='bogr19'))
 drad.phys.2$A.transformed <- sqrt((drad.phys.2$A + 1)) 
 
-#######b.gracilis########
+#######b.gracilis##
 b.gracilis<-subset(drad.phys,Species=="B.gracilis")
 b.gracilis.drought<-subset(drought,Species=="B.gracilis")
 b.gracilis.recovery<-subset(recovery,Species=="B.gracilis")
@@ -168,7 +255,7 @@ hist(resid(bogr.week10.lm.a))
 #n.s.
 #one week to recover at the leaf level
 
-#####A.gerardii######
+#####A.gerardii#
 A.gerardii<-subset(drad.phys,Species=="A.gerardii")
 A.gerardii.drought<-subset(A.gerardii,subset=="Drought")
 A.gerardii.recovery<-subset(A.gerardii,subset.recovery=="Recovery")
@@ -265,7 +352,7 @@ hist(resid(andro.week11.lm.a))
 
 #about two weeks for andropogon to recover to levels of well-watered controls
 
-#####P.smithii##########
+#####P.smithii#
 P.smithii<-subset(drad.phys,Species=="P.smithii")
 p.smithii.drought<-subset(P.smithii,subset=="Drought")
 p.smithii.recovery<-subset(P.smithii,subset.recovery=="Recovery")
@@ -361,7 +448,7 @@ plot(resid(pasm.week11.lm.a)) #homegenity of variances met
 hist(resid(pasm.week11.lm.a))
 #significant
 
-######B.eriopoda########
+######B.eriopoda#
 B.eriopoda<-subset(drad.phys,Species=="B.eriopoda")
 B.eriopoda.drought<-subset(B.eriopoda,subset=="Drought")
 B.eriopoda.recovery<-subset(B.eriopoda,subset.recovery=="Recovery")
@@ -763,41 +850,32 @@ anova(boer.week11.lm.phi)
 #similar to P.sithii, phipsII generally less sensitive to drought, took longer for signficant reductions to ocurr
 #in certain species
 
-###waterpotential#######
+###leaf water potential#######
 drad.wp<-read.csv('C:/Users/A02296270/Desktop/Side_projects/DOE/doe_greenhouse_experiment_data/DRAD_chlor_wp.csv',header=TRUE)
 head(drad.wp)
 hist(drad.wp$mpa)
 #full
 
-full.wp<-lme(water.potential~species*treatment*Time,random=~1|Block/plant,data=drad.wp,na.action = na.exclude)
-Anova(full.wp,contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
-#significant three-way interaction, and singiciant main effect of species; reflecting baseline difference in their
-#water use physiology.
+#separate by control to see if there are baseline differences
+wp.control<-subset(drad.wp,treatment=='C')
+species.wp<-lme(water.potential~species,random=~1|Block/plant,data=wp.control,na.action = na.exclude)
+qqnorm(resid(species.wp)) #some noise at the tails
+qqline(resid(species.wp))
+dagoTest(resid(species.wp)) #normality of model residuals met
+hist(resid(species.wp)) #looks good
 
-plot(full.wp) #residuals versus fitted has fairly homegenous variance in the drought model
-qqnorm(resid(full.wp)) #some noise at the tails
-qqline(resid(full.wp))
-shapiro.test(resid(full.wp)) #still bad, look into data
-hist(resid(full.wp))
+anova(species.wp) #signiciant baseline differences among species, analyze separately
 
-#try a transformation
-drad.wp$water.potential.transformed <- sqrt(drad.wp$water.potential)
-full.wp.transformed<-lme(water.potential.transformed~species*treatment*Time,random=~1|Block/plant,data=drad.wp,na.action = na.exclude)
-qqnorm(resid(full.wp.transformed)) #some noise at the tails
-qqline(resid(full.wp.transformed))
-shapiro.test(resid(full.wp.transformed)) #fixes it
-hist(resid(full.wp.transformed))
-
-#so what does this tell us
-Anova(full.wp.transformed,contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
-#three way interaction is significant, look at each species separately 
-
-#####a.gerardii######
+#####a.gerardii##
 andro.wp<-subset(drad.wp,species=="A.gerardii",na.rm=TRUE)
-summary(andro.wp)
-andro.wp.full<-lme(water.potential.transformed~treatment*Time,random=~1|Block/plant,data=andro.wp,na.action = na.exclude)
+summary(andro.wp) #full distrubtion of w.p. values for table
+andro.wp.full<-lme(sqrt(water.potential)~treatment*Time,random=~1|Block/plant,data=andro.wp,na.action = na.exclude) #square root transformed
+qqnorm(resid(andro.wp.full)) #some noise at the tails
+qqline(resid(andro.wp.full))
+dagoTest(resid(andro.wp.full)) #normality of model residuals barely met, perfromed tranformation to betetr meet htis asumption
+hist(resid(andro.wp.full))
+
 Anova(andro.wp.full,contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
-shapiro.test(resid(andro.wp.full))
 #signficiant treatment*time interactions, implying the impact of the treatment depended on the timing
 
 #get mean wp of control
@@ -807,17 +885,16 @@ sd.wp.andro<-aggregate(mpa~treatment,sd,data=andro.wp)
 
 #week1.andro
 andro.wp.week.1<-subset(andro.wp,Week=="1",na.rm=TRUE)
-andro.week1.lme.wp<-lme(water.potential.transformed ~ treatment,random=~1|Block/plant,data=andro.wp.week.1,na.action = na.exclude)
+andro.week1.lme.wp<-lme(sqrt(water.potential) ~ treatment,random=~1|Block/plant,data=andro.wp.week.1,na.action = na.exclude) #transformed
 anova(andro.week1.lme.wp)
-shapiro.test(resid(andro.week1.lme.wp)) #0.04
 hist(resid(andro.week1.lme.wp)) #not the most normal distribution. still, groups mostly identical
 #not significant
 
 #week7.andro
 andro.wp.week.7<-subset(andro.wp,Week=="7",na.rm=TRUE)
-andro.wp.week.7.lme.wp<-lme(water.potential.transformed ~treatment,random=~1|Block/plant,data=andro.wp.week.7,na.rm=TRUE)
+andro.wp.week.7.lme.wp<-lme(sqrt(water.potential) ~treatment,random=~1|Block/plant,data=andro.wp.week.7,na.action = na.exclude) #transformed
 anova(andro.wp.week.7.lme.wp) #significant
-shapiro.test(resid(andro.wp.week.7.lme.wp)) #normal
+hist(resid(andro.wp.week.7.lme.wp))
 #highly signiciant 
 
 #mean at peak
@@ -826,17 +903,21 @@ sd.wp.andro.peak<-aggregate(mpa~treatment,sd,data=andro.wp.week.7)
 
 #week11.andro
 andro.wp.week.11<-subset(andro.wp,Week=="11",na.rm=TRUE)
-andro.wp.week.11.lme.wp<-lme(water.potential.transformed ~treatment,random=~1|Block/plant,data=andro.wp.week.11,na.rm=TRUE)
+andro.wp.week.11.lme.wp<-lme(sqrt(water.potential) ~treatment,random=~1|Block/plant,data=andro.wp.week.11,na.action = na.exclude) #transformed
 anova(andro.wp.week.11.lme.wp)
-shapiro.test(resid(andro.wp.week.11.lme.wp))
+hist(resid(andro.wp.week.11.lme.wp)) #still a little skew, looks ok
 #not significant, p=.16
 
 ##B.gracilis
 bogr.wp<-subset(drad.wp,species=="B.gracilis",na.rm=TRUE)
 summary(bogr.wp)
-bogr.wp.full<-lme(water.potential.transformed~treatment*Time,random=~1|Block/plant,data=andro.wp,na.action = na.exclude)
-Anova(andro.wp.full,contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
-shapiro.test(resid(bogr.wp.full)) #normal
+bogr.wp.full<-lme(sqrt(water.potential)~treatment*Time,random=~1|Block/plant,data=andro.wp,na.action = na.exclude) #transformed
+qqnorm(resid(bogr.wp.full)) #some noise at the tails
+qqline(resid(bogr.wp.full))
+dagoTest(resid(bogr.wp.full)) #normality of model residuals barely met, perfromed tranformation to betetr meet htis asumption
+hist(resid(bogr.wp.full))
+
+Anova(bogr.wp.full,contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
 #signiciant treatmnt*time interaction
 
 #mean of control
@@ -846,105 +927,101 @@ sd.wp.bogr.control<-aggregate(mpa~treatment,sd,data=bogr.wp)
 
 #week1.bogr
 bogr.wp.week.1<-subset(bogr.wp,Week=="1",na.rm=TRUE)
-bogr.week1.lme.wp<-lme(water.potential.transformed ~ treatment,random=~1|Block/plant,data=bogr.wp.week.1,na.action = na.exclude)
+bogr.week1.lme.wp<-lme(sqrt(water.potential) ~ treatment,random=~1|Block/plant,data=bogr.wp.week.1,na.action = na.exclude) #transformation applied
 anova(bogr.week1.lme.wp)
-shapiro.test(resid(bogr.wp.full))
+hist(resid(bogr.week1.lme.wp))
 #not significant, p=.64
 
 #week7.bogr
 bogr.wp.week.7<-subset(bogr.wp,Week=="7",na.rm=TRUE)
-bogr.wp.week.7.lme.wp<-lme(water.potential.transformed~treatment,random=~1|Block/plant,data=bogr.wp.week.7,na.action = na.exclude)
+bogr.wp.week.7.lme.wp<-lme(sqrt(water.potential)~treatment,random=~1|Block/plant,data=bogr.wp.week.7,na.action = na.exclude)
 anova(bogr.wp.week.7.lme.wp)
-shapiro.test(resid(bogr.wp.week.7.lme.wp))
+hist(resid(bogr.wp.week.7.lme.wp))
 #highly signiciant
-
-#look at mean WP
-mean.wp.bogr.peak<-aggregate(mpa~treatment,mean,data=bogr.wp.week.7)
-sd.wp.bogr.peak<-aggregate(mpa~treatment,sd,data=bogr.wp.week.7)
-#mean: -3.52, sd= 0.49
 
 #week11.bogr
 bogr.wp.week.11<-subset(bogr.wp,Week=="11",na.rm=TRUE)
-bogr.wp.week.11.lme.wp<-lme(water.potential.transformed ~treatment,random=~1|Block/plant,data=bogr.wp.week.11,na.action = na.exclude)
+bogr.wp.week.11.lme.wp<-lme(water.potential ~treatment,random=~1|Block/plant,data=bogr.wp.week.11,na.action = na.exclude)
 anova(bogr.wp.week.11.lme.wp)
-shapiro.test(resid(bogr.wp.week.11.lme.wp))
-#not significant, p = .9101
+hist(resid(bogr.wp.week.11.lme.wp))
+#not significant
 
-##B.eriopoda########
+##B.eriopoda#
 boer.wp<-subset(drad.wp,species=="B.eriopoda",na.rm=TRUE)
 summary(boer.wp)
-boer.wp.full<-lme(water.potential.transformed~treatment*Time,random=~1|Block/plant,data=boer.wp,na.action = na.exclude)
+boer.wp.full<-lme(water.potential~treatment*Time,random=~1|Block/plant,data=boer.wp,na.action = na.exclude)
 Anova(boer.wp.full,contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
-shapiro.test(resid(boer.wp.full)) #normal
-#significant treatment*time interaction
+qqnorm(resid(boer.wp.full)) #some noise at the tails
+qqline(resid(boer.wp.full))
+dagoTest(resid(boer.wp.full)) #normality of model residuals met
+hist(resid(boer.wp.full))
 
-#mean water potential
-mean.wp.boer<-aggregate(mpa~treatment,mean,data=boer.wp)
-sd.wp.boer<-aggregate(mpa~treatment,sd,data=boer.wp)
-#mean of control: -0.98
+#significant treatment*time interaction
 
 #week1.boer
 boer.wp.week.1<-subset(boer.wp,Week=="1",na.rm=TRUE)
-boer.week1.lme.wp<-lme(water.potential.transformed ~treatment,random=~1|Block/plant,data=boer.wp.week.1,na.action = na.exclude)
+boer.week1.lme.wp<-lme(sqrt(water.potential)~treatment,random=~1|Block/plant,data=boer.wp.week.1,na.action = na.exclude) #transformed
 anova(boer.week1.lme.wp)
-shapiro.test(resid(boer.week1.lme.wp)) #normal
-#not significant, 0.6438
+hist(resid(boer.week1.lme.wp)) #normal, little bit of skew
+#not significant
 
 #week7.boer
 boer.wp.week.7<-subset(boer.wp,Week=="7",na.rm=TRUE)
-boer.wp.week.7.lme.wp<-lme(water.potential.transformed~treatment,random=~1|Block/plant,data=boer.wp.week.7,na.action = na.exclude)
+boer.wp.week.7.lme.wp<-lme(sqrt(water.potential)~treatment,random=~1|Block/plant,data=boer.wp.week.7,na.action = na.exclude)
 anova(boer.wp.week.7.lme.wp)
-shapiro.test(resid(boer.wp.week.7.lme.wp)) 
+hist(resid(boer.wp.week.7.lme.wp)) 
 #highly signiciant
-
-#look at mean wp at peak drought
-mean.wp.boer.peak<-aggregate(mpa~treatment,mean,data=boer.wp.week.7)
-sd.wp.boer.peak<-aggregate(mpa~treatment,sd,data=boer.wp.week.7)
-#peak drought: -2.92, sd=0.38
 
 #week11.boer
 boer.wp.week.11<-subset(boer.wp,Week=="11",na.rm=TRUE)
-boer.wp.week.11.lme.wp<-lme(water.potential.transformed ~treatment,random=~1|Block/plant,data=boer.wp.week.11,na.action = na.exclude)
+boer.wp.week.11.lme.wp<-lme(sqrt(water.potential) ~treatment,random=~1|Block/plant,data=boer.wp.week.11,na.action = na.exclude)
 anova(boer.wp.week.11.lme.wp)
-shapiro.test(resid(boer.wp.week.11.lme.wp)) 
+hist(resid(boer.wp.week.11.lme.wp)) 
 #not significant
 
 ##P.smithii
 pasm.wp<-subset(drad.wp,species=="P.smithii",na.rm=TRUE)
 summary(pasm.wp)
-pasm.wp.full<-lme(water.potential.transformed~treatment*Time,random=~1|Block/plant,data=pasm.wp,na.action = na.exclude)
-Anova(pasm.wp.full,contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
-shapiro.test(resid(pasm.wp.full))
-#Signiciant treatment*time interaction 
+pasm.wp.full<-lme(sqrt(water.potential)~treatment*Time,random=~1|Block/plant,data=pasm.wp,na.action = na.exclude)
+qqnorm(resid(pasm.wp.full)) #some noise at the tails
+qqline(resid(pasm.wp.full))
+dagoTest(resid(pasm.wp.full)) #normality of model residuals not met.
+hist(resid(pasm.wp.full)) #Appears to be driver by one outlier.
 
-#look at mean wp
-mean.wp.pasm<-aggregate(mpa~treatment,mean,data=pasm.wp)
-sd.wp.pasm<-aggregate(mpa~treatment,sd,data=pasm.wp)
+View(resid(pasm.wp.full)) #pasm38 outlier. this was also written in my notes during experiment.
+pasm.wp.2 <- pasm.wp %>% dplyr::filter(!(plant == 'pasm38')) #remove outlier plant
+View(recovery.2)
+
+#try again without outlier
+pasm.wp.full.2<-lme(water.potential~treatment*Time,random=~1|Block/plant,data=pasm.wp.2,na.action = na.exclude)
+qqnorm(resid(pasm.wp.full.2)) #some noise at the tails
+qqline(resid(pasm.wp.full.2))
+dagoTest(resid(pasm.wp.full.2)) #normality of model residuals not met.
+hist(resid(pasm.wp.full.2)) #looks good
+
+Anova(pasm.wp.full.2,contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
+#significant treatment*time interaction
 
 #week1.pasm
-pasm.wp.week.1<-subset(pasm.wp,Week=="1",na.rm=TRUE)
-pasm.week1.lme.wp<-lme(water.potential.transformed~ treatment,random=~1|Block/plant,data=pasm.wp.week.1,na.action = na.exclude)
+pasm.wp.week.1<-subset(pasm.wp.2,Week=="1",na.rm=TRUE)
+pasm.week1.lme.wp<-lme(sqrt(water.potential) ~ treatment,random=~1|Block/plant,data=pasm.wp.week.1,na.action = na.exclude) #transformed
 anova(pasm.week1.lme.wp)
-shapiro.test(resid(pasm.week1.lme.wp)) #barely normal
+hist(resid(pasm.week1.lme.wp)) #meh
 #not significant
 
 #week7.pasm
 pasm.wp.week.7<-subset(pasm.wp,Week=="7",na.rm=TRUE)
-pasm.wp.week.7.lme.wp<-lme(water.potential.transformed ~ treatment,random=~1|Block/plant,data=pasm.wp.week.7,na.action = na.exclude)
+pasm.wp.week.7.lme.wp<-lme(sqrt(water.potential) ~ treatment,random=~1|Block/plant,data=pasm.wp.week.7,na.action = na.exclude) #transformed
 anova(pasm.wp.week.7.lme.wp)
-shapiro.test(resid(pasm.wp.week.7.lme.wp)) #normal
+hist(resid(pasm.wp.week.7.lme.wp)) #normal
 #highly signiciant
-
-mean.wp.pasm.peak<-aggregate(mpa~treatment,mean,data=pasm.wp.week.7)
-sd.wp.pasm.peak<-aggregate(mpa~treatment,sd,data=pasm.wp.week.7)
 
 #week11.pasm
 pasm.wp.week.11<-subset(pasm.wp,Week=="11",na.rm=TRUE)
-pasm.wp.week.11.lme.wp<-lm(water.potential.transformed ~ treatment,random=~1|Block/plant,data=pasm.wp.week.11,na.action = na.exclude)
+pasm.wp.week.11.lme.wp<-lme(sqrt(water.potential) ~ treatment,random=~1|Block/plant,data=pasm.wp.week.11,na.action = na.exclude) #transformed
 anova(pasm.wp.week.11.lme.wp)
-shapiro.test(resid(pasm.wp.week.11.lme.wp)) #normal
+hist(resid(pasm.wp.week.11.lme.wp)) #normal
 #not significant
-
 
 #######specific leaf area#########
 
@@ -953,102 +1030,135 @@ head(drad.sla)
 hist(drad.sla$SLA)
 View(drad.sla)
 
-#full
-full.sla<-lme(SLA~Species*Treatment*Time,random=~1|Block/Plant,data=drad.sla,na.action = na.exclude)
-Anova(full.sla,contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
-shapiro.test(resid(full.sla)) #residuals not normally distributed
+#look at baseline differences among species (controls)
+sla.control<-subset(drad.sla,Treatment=='C')
+full.sla.control<-lme(SLA~Species,random=~1|Block/Plant,data=sla.control,na.action = na.exclude)
+plot(resid(full.sla.control)) #homegenity of variances met
+dagoTest(resid(full.sla.control)) #normality of model residuals met
+hist(resid(full.sla.control))
 
-drad.sla$SLA.transformed <- sqrt(drad.sla$SLA)
-qqnorm(resid(full.sla)) 
-qqline(resid(full.sla))
-shapiro.test(resid(full.sla))
-hist(resid(full.sla)) #looks like a single outlier, remove this and see
-View(resid(full.sla))
-
-#see if removal of the one cler outlier makes a difference...
-
-drad.sla.2 <- drad.sla %>% filter(!(Plant=='pasm27'))
-View(recovery.2)
+anova(full.sla.control)
+#significant baseline differences among species
 
 #andro
 andro.sla<-subset(drad.sla,Species=="A.gerardii",na.rm=TRUE)
 summary(andro.sla)
-andro.sla.full<-lme(SLA~Treatment*Time,random=~1|Block/Plant,data=andro.sla,na.action = na.exclude)
-Anova(andro.sla.full,type=3)
+andro.sla.full<-lme(sqrt(SLA)~Treatment*Time,random=~1|Block/Plant,data=andro.sla,na.action = na.exclude) #transformed
+plot(resid(andro.sla.full)) #homegenity of variances met
+dagoTest(resid(andro.sla.full)) #normality of model residuals met after transformation
+hist(resid(andro.sla.full))
+Anova(andro.sla.full,contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
 #nothing signiciant
 
 #week7.andro
-andro.wp.week.7<-subset(andro.sla,Time=="Peak drought",na.rm=TRUE)
-andro.sla.week.7.lme.wp<-lm(SLA ~Treatment,random=~1|Block/Plant,data=andro.wp.week.7,na.rm=TRUE)
+andro.sla.week.7<-subset(andro.sla,Time=="Peak drought",na.rm=TRUE)
+andro.sla.week.7.lme.wp<-lme(SLA ~Treatment,random=~1|Block/Plant,data=andro.sla.week.7,na.action = na.exclude)
+hist(resid(andro.sla.week.7.lme.wp)) #looks fairly normal
 anova(andro.sla.week.7.lme.wp)
-#P= 0.3207, no significant
+#no significant differences
 
 #week11.andro
 andro.sla.week.11<-subset(andro.sla,Time=="Recovery",na.rm=TRUE)
-andro.sla.week.11.lme<-lm(mpa ~treatment,random=~1|Block/plant,data=andro.wp.week.11,na.rm=TRUE)
+andro.sla.week.11.lme<-lme(SLA ~Treatment,random=~1|Block/plant,data=andro.sla.week.11,na.action = na.exclude)
+hist(resid(andro.sla.week.11.lme)) #looks ok
 anova(andro.sla.week.11.lme)
-#not significant, P=0.1517
+#not significant
 
 #B.gracilis
 bogr.sla<-subset(drad.sla,Species=="B.gracilis",na.rm=TRUE)
 summary(bogr.sla)
-bogr.sla.full<-lme(SLA~Treatment*Time,random=~1|Plant,data=bogr.sla,na.action = na.exclude)
-Anova(bogr.sla.full,type=3)
-#Treatment*time signiciant
+bogr.sla.full<-lme(sqrt(SLA)~Treatment*Time,random=~1|Plant,data=bogr.sla,na.action = na.exclude)
+plot(resid(bogr.sla.full)) #homegenity of variances met
+dagoTest(resid(bogr.sla.full)) #normality of model residuals not met after transformation
+hist(resid(bogr.sla.full)) #look at outlier
+
+#see if removing outlier does anything
+View(resid(bogr.sla.full)) #bogr 37 outlier. this was also written in my notes during experiment.
+bogr.sla.2 <- bogr.sla %>% dplyr::filter(!(Plant == 'BOGR37')) #remove outlier plant
+
+#try again
+bogr.sla.full.2<-lme(sqrt(SLA)~Treatment*Time,random=~1|Plant,data=bogr.sla.2,na.action = na.exclude)
+plot(resid(bogr.sla.full.2)) #homegenity of variances met
+dagoTest(resid(bogr.sla.full.2)) #normality of model residuals met after removing the outlier
+hist(resid(bogr.sla.full.2)) 
+
+Anova(bogr.sla.full.2,type=3)
+#Signiciant treatment* time interaction
 
 #week7.bogr
-bogr.wp.week.7<-subset(bogr.sla,Time=="Peak drought",na.rm=TRUE)
-bogr.sla.week.7.lme<-lm(SLA ~Treatment,random=~1|Block/Plant,data=bogr.wp.week.7,na.rm=TRUE)
+bogr.wp.week.7<-subset(bogr.sla.2,Time=="Peak drought",na.rm=TRUE)
+bogr.sla.week.7.lme<-lme(SLA ~Treatment,random=~1|Block/Plant,data=bogr.wp.week.7,na.action = na.exclude)
+hist(resid(bogr.sla.week.7.lme)) #looks ok
 anova(bogr.sla.week.7.lme)
-#not signiciant p = .95
+#not signiciant
 
 #week11.bogr
-bogr.wp.week.11<-subset(bogr.sla,Time=="Recovery",na.rm=TRUE)
-bogr.sla.week.11.lme<-lm(SLA ~Treatment,random=~1|Block/Plant,data=bogr.wp.week.11,na.rm=TRUE)
+bogr.wp.week.11<-subset(bogr.sla.2,Time=="Recovery",na.rm=TRUE)
+bogr.sla.week.11.lme<-lme(SLA~Treatment,random=~1|Block/Plant,data=bogr.wp.week.11,na.action = na.exclude) #transformed
+hist(resid(bogr.sla.week.11.lme)) #looks ok
 anova(bogr.sla.week.11.lme)
-#highly signiciant (higher)
+#highly signiciant (higher in previously droughted plants)
 
 #B.eriopoda
 boer.sla<-subset(drad.sla,Species=="B.eriopoda",na.rm=TRUE)
 summary(boer.sla)
 boer.sla.full<-lme(SLA~Treatment*Time,random=~1|Block/Plant,data=boer.sla,na.action = na.exclude)
-Anova(boer.sla.full,type=3)
-#treatmena weakly significant, treatment*time weakly significant
+plot(resid(boer.sla.full)) #homegenity of variances met
+dagoTest(resid(boer.sla.full)) #normality of model residuals met
+hist(resid(boer.sla.full)) #looks ok
+Anova(boer.sla.full,contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
+
+#treatmena weakly significant, treatment*time weakly significant (p=0.08)
 
 #week7.boer
 boer.wp.week.7<-subset(boer.sla,Time=="Peak drought",na.rm=TRUE)
-boer.sla.week.7.lme<-lm(SLA ~Treatment,random=~1|Block/Plant,data=boer.wp.week.7,na.rm=TRUE)
+boer.sla.week.7.lme<-lme(sqrt(SLA) ~Treatment,random=~1|Block/Plant,data=boer.wp.week.7,na.action = na.exclude)
+hist(resid(boer.sla.week.7.lme))
 anova(boer.sla.week.7.lme)
 # signiciant (lower)
 
 #week11.boer
 boer.wp.week.11<-subset(boer.sla,Time=="Recovery",na.rm=TRUE)
-boer.sla.week.11.lme<-lm(SLA ~Treatment,random=~1|Block/Plant,data=boer.wp.week.11,na.rm=TRUE)
+boer.sla.week.11.lme<-lm(SLA ~Treatment,random=~1|Block/Plant,data=boer.wp.week.11,na.action = na.exclude)
+hist(resid(boer.sla.week.11.lme)) #looks ok
 anova(boer.sla.week.11.lme)
 #not signiciant
 
-#P.smthii SLA
+#P.smthii 
 pasm.sla<-subset(drad.sla,Species=="P.smithii",na.rm=TRUE)
 summary(pasm.sla)
 pasm.sla.full<-lme(SLA~Treatment*Time,random=~1|Block/Plant,data=pasm.sla,na.action = na.exclude)
-Anova(pasm.sla.full,type=3)
-#treatment*time signiciant
+plot(resid(pasm.sla.full)) #homegenity of variances not met
+dagoTest(resid(pasm.sla.full)) #normality of model residuals not met
+hist(resid(pasm.sla.full)) #clear outlier pasm 27
+
+#remove the outlier
+pasm.sla.2 <- pasm.sla %>% dplyr::filter(!(Plant == 'pasm27')) #remove outlier plant
+
+#try again
+pasm.sla.full.2<-lme(SLA~Treatment*Time,random=~1|Block/Plant,data=pasm.sla.2,na.action = na.exclude)
+plot(resid(pasm.sla.full.2)) #homegenity of variances met
+dagoTest(resid(pasm.sla.full.2)) #normality of model residuals met after removing the outlier
+hist(resid(pasm.sla.full.2))
+
+Anova(pasm.sla.full.2,contrasts=list(topic=contr.sum, sys=contr.sum), type=3)
+#significant treatment*time interaction
 
 #week7.pasm
-pasm.wp.week.7<-subset(pasm.sla,Time=="Peak drought",na.rm=TRUE)
-pasm.sla.week.7.lme<-lm(SLA ~Treatment,random=~1|Block/Plant,data=pasm.wp.week.7,na.rm=TRUE)
-anova(pasm.sla.week.7.lme)
-#not signiciant
-
-# signiciant
+pasm.wp.week.7<-subset(pasm.sla.2,Time=="Peak drought",na.rm=TRUE)
+pasm.sla.week.7.lme<-lme(SLA ~Treatment,random=~1|Block/Plant,data=pasm.wp.week.7,na.action = na.exclude)
+hist(resid(pasm.sla.week.7.lme)) #little right skewed but ok
+anova(pasm.sla.week.7.lme) 
+#significant
 
 #week11.pasm
-pasm.wp.week.11<-subset(pasm.sla,Time=="Recovery",na.rm=TRUE)
-pasm.sla.week.11.lme<-lm(SLA ~Treatment,random=~1|Block/Plant,data=pasm.wp.week.11,na.rm=TRUE)
+pasm.wp.week.11<-subset(pasm.sla.2,Time=="Recovery",na.rm=TRUE)
+pasm.sla.week.11.lme<-lme(SLA ~Treatment,random=~1|Block/Plant,data=pasm.wp.week.11,na.action = na.exclude)
+hist(resid(pasm.sla.week.11.lme)) #looks ok
 anova(pasm.sla.week.11.lme)
 #signiciant (higher)
 
-#root:shoot
+#######root:shoot##########
 
 head(drad.biomass)
 root.shoot.full<-subset(pasm.sla,Time=="drad.biomass",na.rm=TRUE)
