@@ -1158,39 +1158,164 @@ hist(resid(pasm.sla.week.11.lme)) #looks ok
 anova(pasm.sla.week.11.lme)
 #signiciant (higher)
 
+#area per leaf#############
+drad.morph<-read.csv('G:/My Drive/Other projects/doe-drought-recovery/DOE_2019/data/drad_morphology_for_analysis.csv')
+head(drad.morph)
+summary(drad.morph)
+View(drad.morph)
+
+leaf.ag.morph<-aggregate(average~Plant + Species + Block + Week + Treatment,mean,data=drad.morph)
+
+#subset
+leaf.dr<-subset(leaf.ag.morph,treatment=='DR')
+
+#andro
+leaf.dr.andro <- subset(leaf.dr,Species=='A.gerardii')
+leaf.dr.7.11 <- subset(leaf.dr.andro, Week==c('11') | Week==c('7'))
+
+#get rid of unclear data values of bogr and andro29
+leaf.dr.7.11.2 <-leaf.dr.7.11 %>% dplyr::filter(!(Plant==c('BOGR29'))) %>%
+  dplyr::filter(!(Plant==c('ANGE29')))
+
+andro.leaf.size.lme<-lme(average~Week,random=~1|Block/Plant,data=leaf.dr.7.11.2,na.action = na.exclude)
+qqnorm(resid(andro.leaf.size.lme)) #some noise at the tails
+qqline(resid(andro.leaf.size.lme))
+hist(resid(andro.leaf.size.lme)) # a little meh
+anova(andro.leaf.size.lme)
+#significantly different
+
+#bogr
+leaf.dr.bogr <- subset(leaf.dr,Species=='B.gracilis')
+leaf.dr.bogr.7.11 <- subset(leaf.dr.bogr, Week==c('11') | Week==c('7'))
+
+bogr.leaf.size.lme<-lme(average~Week,random=~1|Block/Plant,data=leaf.dr.bogr.7.11,na.action = na.exclude)
+qqnorm(resid(bogr.leaf.size.lme)) #some noise at the tails
+qqline(resid(bogr.leaf.size.lme))
+hist(resid(bogr.leaf.size.lme)) # looks ok
+anova(bogr.leaf.size.lme)
+#signficiant 
+
+#boer
+leaf.dr.boer <- subset(leaf.dr,Species=='B.eriopoda')
+leaf.dr.boer.7.11 <- subset(leaf.dr.boer, Week==c('11') | Week==c('7'))
+
+boer.leaf.size.lme<-lme(average~Week,random=~1|Block/Plant,data=leaf.dr.boer.7.11,na.action = na.exclude)
+qqnorm(resid(boer.leaf.size.lme)) #some noise at the tails
+qqline(resid(boer.leaf.size.lme))
+hist(resid(boer.leaf.size.lme)) # looks ok
+anova(boer.leaf.size.lme)
+#significant increase
+
+#pasm
+leaf.dr.pasm <- subset(leaf.dr,Species=='P.smithii')
+leaf.dr.pasm.7.11 <- subset(leaf.dr.pasm, Week==c('11') | Week==c('7'))
+
+pasm.leaf.size.lme<-lme(sqrt(average)~Week,random=~1|Block/Plant,data=leaf.dr.pasm.7.11,na.action = na.exclude) #transformed
+qqnorm(resid(pasm.leaf.size.lme)) #some noise at the tails
+qqline(resid(pasm.leaf.size.lme))
+hist(resid(pasm.leaf.size.lme)) # looks better after transformation
+anova(pasm.leaf.size.lme)
+#significant increases
+
+###stem number#######
+stem.ag.morph<-aggregate(tillers~Plant + Species + Block + Week + treatment,mean,data=drad.morph)
+
+
+#andro
+stem.dr.andro <- subset(stem.ag.morph,Species=='A.gerardii')
+stem.dr.7.11 <- subset(stem.dr.andro, Week==c('11') | Week==c('7'))
+
+#get rid of unclear data values of bogr and andro29
+stem.dr.7.11.2 <-stem.dr.7.11 %>% 
+  dplyr::filter(!(Plant==c('ANGE29')))
+
+andro.stem.lme<-lme(sqrt(tillers)~Week,random=~1|Block/Plant,data=stem.dr.7.11.2,na.action = na.exclude) #transformed
+qqnorm(resid(andro.stem.lme)) #some noise at the tails
+qqline(resid(andro.stem.lme))
+hist(resid(andro.stem.lme)) # better after transformation
+anova(andro.stem.lme)
+#not significantly different!
+
+#b.gracilis
+#bogr
+stem.dr.bogr <- subset(stem.ag.morph,Species=='B.gracilis')
+stem.dr.bogr.7.11 <- subset(stem.dr.bogr, Week==c('11') | Week==c('7'))
+
+bogr.stem.lme<-lme(tillers~Week,random=~1|Block/Plant,data=stem.dr.bogr.7.11 ,na.action = na.exclude)
+qqnorm(resid(bogr.stem.lme)) #some noise at the tails
+qqline(resid(bogr.stem.lme))
+hist(resid(bogr.stem.lme)) # looks ok
+anova(bogr.stem.lme)
+#significant increase
+
+#boer
+stem.dr.boer <- subset(stem.ag.morph,Species=='B.eriopoda')
+stem.dr.boer.7.11 <- subset(stem.dr.boer, Week==c('11') | Week==c('7'))
+
+boer.stem.lme<-lme(tillers~Week,random=~1|Block/Plant,data=stem.dr.boer.7.11 ,na.action = na.exclude)
+qqnorm(resid(boer.stem.lme)) #some noise at the tails
+qqline(resid(boer.stem.lme))
+hist(resid(boer.stem.lme)) # looks ok
+anova(boer.stem.lme)
+#significant increase
+
+#pasm
+stem.dr.pasm <- subset(stem.ag.morph,Species=='P.smithii')
+stem.dr.pasm.7.11 <- subset(stem.dr.pasm, Week==c('11') | Week==c('7'))
+
+pasm.stem.lme<-lme(sqrt(tillers)~Week,random=~1|Block/Plant,data=stem.dr.pasm.7.11 ,na.action = na.exclude) #transformed
+qqnorm(resid(pasm.stem.lme)) #some noise at the tails
+qqline(resid(pasm.stem.lme))
+hist(resid(pasm.stem.lme)) # looks ok after transformation
+anova(pasm.stem.lme)
+#signficiant increase
+
 #######root:shoot##########
-
+drad.biomass <-read.csv('G:/My Drive/Other projects/doe-drought-recovery/DOE_2019/data/DRAD_ANPP.csv')
 head(drad.biomass)
-root.shoot.full<-subset(pasm.sla,Time=="drad.biomass",na.rm=TRUE)
-root.shoot.full.lme<-lme(root.shoot~Treatment*Species,random=~1|Plant,data=drad.biomass,na.action = na.exclude)
-Anova(root.shoot.full.lme)
-#Significant Species differences so analyze separately
+root.shoot.full.lme<-lme(sqrt(root.shoot)~Species,random=~1|Block/Plant,data=drad.biomass,na.action = na.exclude) #transformed
+qqnorm(resid(root.shoot.full.lme)) #some noise at the tails
+qqline(resid(root.shoot.full.lme))
+dagoTest(resid(root.shoot.full.lme)) #normality of model residuals met
+hist(resid(root.shoot.full.lme))
+anova(root.shoot.full.lme)
+#Significant Species differences in total and in peak drought, so analyze separately
 
+#look at peak drought values across species because it is the basis of comparison
+biomass.drought<-subset(drad.biomass,Time=='Peak drought')
+root.shoot.full.drought.lme<-lme(root.shoot~Species,random=~1|Block/Plant,data=biomass.drought,na.action = na.exclude)
+qqnorm(resid(root.shoot.full.drought.lme)) #some noise at the tails
+qqline(resid(root.shoot.full.drought.lme))
+dagoTest(resid(root.shoot.full.drought.lme)) #normality of model residuals met
+hist(resid(root.shoot.full.drought.lme))
+anova(root.shoot.full.drought.lme)
+#significant species differences at peak drought
 
-#NPP
 #B.gracilis
-drad.biomass<-read.csv(file.choose(),header=TRUE)
-head(drad.biomass)
 b.gracilis.biomass<-subset(drad.biomass,Species=="B.gracilis",na.rm=TRUE)
-bogr.root.shoot.full.lme<-lme(root.shoot~Treatment,random=~1|Block/Plant,data=b.gracilis.biomass,na.action = na.exclude)
+bogr.root.shoot.full.lme<-lme(sqrt(root.shoot)~Treatment,random=~1|Block/Plant,data=b.gracilis.biomass,na.action = na.exclude) #transformed
+hist(resid(bogr.root.shoot.full.lme))
 anova(bogr.root.shoot.full.lme)
 #signiciant - post-deought lower than peak drought
 
 #A.gerardii
 andro.biomass<-subset(drad.biomass,Species=="A.gerardii",na.rm=TRUE)
 andro.root.shoot.full.lme<-lme(root.shoot~Treatment,random=~1|Block/Plant,data=andro.biomass,na.action = na.exclude)
+hist(resid(andro.root.shoot.full.lme)) #looks ok
 anova(andro.root.shoot.full.lme)
 #significant - post-drought lower than peak drought
 
 #B.eriopoda
 boer.biomass<-subset(drad.biomass,Species=="B.eriopoda",na.rm=TRUE)
-boer.root.shoot.full.lme<-lme(root.shoot~Treatment,random=~1|Block/Plant,data=boer.biomass,na.action = na.exclude)
+boer.root.shoot.full.lme<-lme(sqrt(root.shoot)~Treatment,random=~1|Block/Plant,data=boer.biomass,na.action = na.exclude) #transformed
+hist(resid(boer.root.shoot.full.lme))
 anova(boer.root.shoot.full.lme)
 #not signficant
 
 #not significant
 pasm.biomass<-subset(drad.biomass,Species=="P.smithii",na.rm=TRUE)
-pasm.root.shoot.full.lme<-lme(root.shoot~Treatment,random=~1|Block/Plant,data=pasm.biomass,na.action = na.exclude)
+pasm.root.shoot.full.lme<-lme(sqrt(root.shoot)~Treatment,random=~1|Block/Plant,data=pasm.biomass,na.action = na.exclude) #transformed
+hist(resid(pasm.root.shoot.full.lme))
 anova(pasm.root.shoot.full.lme)
 #moderatly signiciant
 
@@ -1331,7 +1456,7 @@ ag.drought.root.shoot.se<-aggregate(root.shoot~Species + Time + ID,ser,data=drad
 merge.biomass<-merge(ag.drought.root.shoot.mean,ag.drought.root.shoot.sd,by=c("Time","Species"))
 write.csv(merge.biomass,file="clm.root.shoot.csv") 
 
-#for finding starting poin of model scenario
+######for finding starting poin of model scenario#############
 library(raster)
 library(sp)
 r <- getData("worldclim",var="bio",res=10)
