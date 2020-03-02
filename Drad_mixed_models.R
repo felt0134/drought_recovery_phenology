@@ -1167,48 +1167,109 @@ View(drad.morph)
 leaf.ag.morph<-aggregate(average~Plant + Species + Block + Week + Treatment,mean,data=drad.morph)
 
 #subset
-leaf.dr<-subset(leaf.ag.morph,treatment=='DR')
+#leaf.dr<-subset(leaf.ag.morph,treatment=='DR')
 
 #andro
-leaf.dr.andro <- subset(leaf.dr,Species=='A.gerardii')
+leaf.dr.andro <- subset(leaf.ag.morph,Species=='A.gerardii')
 leaf.dr.7.11 <- subset(leaf.dr.andro, Week==c('11') | Week==c('7'))
 
 #get rid of unclear data values of bogr and andro29
 leaf.dr.7.11.2 <-leaf.dr.7.11 %>% dplyr::filter(!(Plant==c('BOGR29'))) %>%
   dplyr::filter(!(Plant==c('ANGE29')))
 
-andro.leaf.size.lme<-lme(average~Week,random=~1|Block/Plant,data=leaf.dr.7.11.2,na.action = na.exclude)
-qqnorm(resid(andro.leaf.size.lme)) #some noise at the tails
-qqline(resid(andro.leaf.size.lme))
-hist(resid(andro.leaf.size.lme)) # a little meh
-anova(andro.leaf.size.lme)
+#week 7
+andro.leaf.size.week.7<-subset(leaf.dr.7.11.2,Week=='7')
+andro.leaf.size.7.lme<-lme(average~treatment,random=~1|Block/Plant,data=andro.leaf.size.week.7,na.action = na.exclude)
+plot(resid(andro.leaf.size.7.lme))
+qqnorm(resid(andro.leaf.size.7.lme)) #some noise at the tails
+qqline(resid(andro.leaf.size.7.lme))
+hist(resid(andro.leaf.size.7.lme)) # a little meh
+anova(andro.leaf.size.7.lme)
 #significantly different
 
+#week 11
+andro.leaf.size.week.11<-subset(leaf.dr.7.11.2,Week=='11')
+andro.leaf.size.11.lme<-lme(average~treatment,random=~1|Block/Plant,data=andro.leaf.size.week.11,na.action = na.exclude)
+plot(resid(andro.leaf.size.11.lme))
+qqnorm(resid(andro.leaf.size.11.lme)) #looks good
+qqline(resid(andro.leaf.size.11.lme))
+hist(resid(andro.leaf.size.11.lme)) # a little meh
+anova(andro.leaf.size.11.lme)
+#not significant, weakly singificant P=0.07
+
 #bogr
-leaf.dr.bogr <- subset(leaf.dr,Species=='B.gracilis')
+leaf.dr.bogr <- subset(leaf.ag.morph,Species=='B.gracilis')
 leaf.dr.bogr.7.11 <- subset(leaf.dr.bogr, Week==c('11') | Week==c('7'))
 
-bogr.leaf.size.lme<-lme(average~Week,random=~1|Block/Plant,data=leaf.dr.bogr.7.11,na.action = na.exclude)
-qqnorm(resid(bogr.leaf.size.lme)) #some noise at the tails
-qqline(resid(bogr.leaf.size.lme))
-hist(resid(bogr.leaf.size.lme)) # looks ok
-anova(bogr.leaf.size.lme)
-#signficiant 
+#week 7
+leaf.bogr.week.7<-subset(leaf.dr.bogr.7.11,Week=='7')
+bogr.leaf.size.7.lme<-lme(average~treatment,random=~1|Block/Plant,data=leaf.bogr.week.7,na.action = na.exclude)
+qqnorm(resid(bogr.leaf.size.7.lme)) 
+qqline(resid(bogr.leaf.size.7.lme)) #some noise at top tails
+hist(resid(bogr.leaf.size.7.lme)) # looks ok
+anova(bogr.leaf.size.7.lme)
+#signficiant reduction
+
+#week 11
+leaf.bogr.week.11<-subset(leaf.dr.bogr.7.11,Week=='11')
+bogr.leaf.size.11.lme<-lme(sqrt(average)~treatment,random=~1|Block/Plant,data=leaf.bogr.week.11,na.action = na.exclude) #transformed
+qqnorm(resid(bogr.leaf.size.11.lme)) 
+qqline(resid(bogr.leaf.size.11.lme)) #some noise at top tails
+hist(resid(bogr.leaf.size.11.lme)) # looks better after transformation
+anova(bogr.leaf.size.11.lme)
+#not signficiant
 
 #boer
-leaf.dr.boer <- subset(leaf.dr,Species=='B.eriopoda')
+leaf.dr.boer <- subset(leaf.ag.morph,Species=='B.eriopoda')
 leaf.dr.boer.7.11 <- subset(leaf.dr.boer, Week==c('11') | Week==c('7'))
 
-boer.leaf.size.lme<-lme(average~Week,random=~1|Block/Plant,data=leaf.dr.boer.7.11,na.action = na.exclude)
-qqnorm(resid(boer.leaf.size.lme)) #some noise at the tails
-qqline(resid(boer.leaf.size.lme))
-hist(resid(boer.leaf.size.lme)) # looks ok
-anova(boer.leaf.size.lme)
-#significant increase
+#week 7
+leaf.boer.week.7<-subset(leaf.dr.boer.7.11, Week=='7')
+boer.leaf.size.7.lme<-lme(sqrt(average)~treatment,random=~1|Block/Plant,data=leaf.boer.week.7,na.action = na.exclude) #transformed
+qqnorm(resid(boer.leaf.size.7.lme)) #some noise at the tails, transformation helps
+qqline(resid(boer.leaf.size.7.lme))
+hist(resid(boer.leaf.size.7.lme)) # looks good after transformation
+anova(boer.leaf.size.7.lme)
+#not significant
+
+#week 11
+leaf.boer.week.11<-subset(leaf.dr.boer.7.11, Week=='11')
+boer.leaf.size.11.lme<-lme(average~treatment,random=~1|Block/Plant,data=leaf.boer.week.11,na.action = na.exclude)
+qqnorm(resid(boer.leaf.size.11.lme)) #look ok
+qqline(resid(boer.leaf.size.11.lme))
+hist(resid(boer.leaf.size.11.lme)) # looks ok
+ anova(boer.leaf.size.11.lme)
+#sig. difference
 
 #pasm
-leaf.dr.pasm <- subset(leaf.dr,Species=='P.smithii')
+leaf.dr.pasm <- subset(leaf.ag.morph,Species=='P.smithii')
 leaf.dr.pasm.7.11 <- subset(leaf.dr.pasm, Week==c('11') | Week==c('7'))
+
+#week 7
+leaf.pasm.week.7<-subset(leaf.dr.pasm.7.11, Week=='7')
+pasm.leaf.size.7.lme<-lme(average~treatment,random=~1|Block/Plant,data=leaf.pasm.week.7,na.action = na.exclude) #transformed
+qqnorm(resid(pasm.leaf.size.7.lme)) #some noise at the tails, transformation helps
+qqline(resid(pasm.leaf.size.7.lme))
+hist(resid(pasm.leaf.size.7.lme)) # looks good after transformation
+anova(boer.leaf.size.7.lme)
+
+#remove clear outlier: pasm10
+leaf.dr.pasm.7.11.2 <- leaf.dr.pasm.7.11 %>% dplyr::filter(!(Plant=='PASM10'))
+leaf.pasm.week.7.2<-subset(leaf.dr.pasm.7.11.2, Week=='7')
+pasm.leaf.size.7.lme.2<-lme(sqrt(average)~treatment,random=~1|Block/Plant,data=leaf.pasm.week.7.2,na.action = na.exclude) #transformed
+qqnorm(resid(pasm.leaf.size.7.lme.2)) #some noise at the tails, transformation helps
+qqline(resid(pasm.leaf.size.7.lme.2))
+hist(resid(pasm.leaf.size.7.lme.2)) # looks good 
+anova(pasm.leaf.size.7.lme.2)
+#signficiant 
+
+leaf.pasm.week.11<-subset(leaf.dr.pasm.7.11.2, Week=='11')
+pasm.leaf.size.11.lme<-lme(sqrt(average)~treatment,random=~1|Block/Plant,data=leaf.pasm.week.11,na.action = na.exclude) #transformed
+qqnorm(resid(pasm.leaf.size.11.lme)) #some noise at the tails, transformation helps
+qqline(resid(pasm.leaf.size.11.lme))
+hist(resid(pasm.leaf.size.11.lme)) # looks good after transformation
+anova(pasm.leaf.size.11.lme)
+#not significant
 
 pasm.leaf.size.lme<-lme(sqrt(average)~Week,random=~1|Block/Plant,data=leaf.dr.pasm.7.11,na.action = na.exclude) #transformed
 qqnorm(resid(pasm.leaf.size.lme)) #some noise at the tails
@@ -1219,7 +1280,7 @@ anova(pasm.leaf.size.lme)
 
 ###stem number#######
 stem.ag.morph<-aggregate(tillers~Plant + Species + Block + Week + treatment,mean,data=drad.morph)
-
+View(drad.morph)
 
 #andro
 stem.dr.andro <- subset(stem.ag.morph,Species=='A.gerardii')
