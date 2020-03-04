@@ -147,3 +147,107 @@ ggplot(merge.stuff.a,aes(Week,A.x,fill=treatment,na.rm=TRUE)) +
     axis.line.y = element_line(colour = "black"))
 
 ggsave("drad_A_plot.pdf",width = 6, height = 5, units = c("in"))
+
+####specific leaf area##########
+eff.sizes.sla<-subset(eff.sizes,Process=='SLA')
+ggplot(eff.sizes.sla,aes(Week,effect,shape=as.factor(ID),na.rm=TRUE)) +
+  scale_x_discrete(labels=c("Peak drought"="Peak drought",
+                            "Recovery" = "End of recovery")) +
+  geom_hline(yintercept = c(0),color="black",size=1)  +
+  geom_hline(yintercept = c(-0.8),color="grey",size=1)  +
+  geom_hline(yintercept = c(+0.8),color="grey",size=1)  +
+  #scale_y_continuous(-3,-4.1) +
+  geom_errorbar(aes(ymax = 0+sup, ymin = 0+inf),position=position_dodge(width=0.7),width=.3) +
+  #stat_summary(geom="line",fun.y="mean",position=dodge) +
+  stat_summary(geom="point",fun.y="mean",size=7,fill='white',aes(shape=as.factor(ID)),position=dodge.eff) +
+  scale_shape_manual(values=c('1'=21,'2'=22,'3'=23,'4'=24),name="",
+                     labels=c('1'='Mesic prairie','2'='Mixed-grass prairie','3'='Semi-arid steppe','4'='Desert grassland')) +
+  ylab('SLA effect size') +
+  xlab('') +
+  theme(
+    axis.text = element_text(color='black',size=15),
+    axis.title = element_text(color='black',size=20),
+    axis.ticks = element_line(color='black'),
+    legend.title = element_text(size=1),
+    legend.text = element_text(size=10),
+    legend.position = c(.2,.81),
+    legend.key = element_blank(),
+    panel.background = element_rect(fill=NA),
+    panel.border = element_rect(colour = "black", fill=NA, size=0.75),
+    #panel.border = element_blank(), #make the borders clear in prep for just have two axes
+    axis.line.x = element_line(colour = "black"),
+    #strip.text = element_text(size=15),
+    #strip.background = element_rect(
+    #color="black", fill="white", size=0.75, linetype="solid"),
+    axis.line.y = element_line(colour = "black"))
+
+ggsave("drad_sla_plot.pdf",width = 6, height = 5, units = c("in"))
+
+######leaf size###########
+eff.sizes.leaf.size<-subset(eff.sizes,Process=='Area per leaf')
+ggplot(eff.sizes.leaf.size,aes(Week,effect,shape=as.factor(ID),na.rm=TRUE)) +
+  scale_x_discrete(labels=c("Peak drought"="Peak drought",
+                            "Recovery" = "End of recovery")) +
+  geom_hline(yintercept = c(0),color="black",size=1)  +
+  geom_hline(yintercept = c(-0.8),color="grey",size=1)  +
+  geom_hline(yintercept = c(+0.8),color="grey",size=1)  +
+  #scale_y_continuous(-3,-4.1) +
+  geom_errorbar(aes(ymax = 0+sup, ymin = 0+inf),position=position_dodge(width=0.7),width=.3) +
+  #stat_summary(geom="line",fun.y="mean",position=dodge) +
+  stat_summary(geom="point",fun.y="mean",size=7,fill='white',aes(shape=as.factor(ID)),position=dodge.eff) +
+  scale_shape_manual(values=c('1'=21,'2'=22,'3'=23,'4'=24),name="",
+                     labels=c('1'='Mesic prairie','2'='Mixed-grass prairie','3'='Semi-arid steppe','4'='Desert grassland')) +
+  ylab('Leaf size effect size') +
+  xlab('') +
+  theme(
+    axis.text = element_text(color='black',size=15),
+    axis.title = element_text(color='black',size=20),
+    axis.ticks = element_line(color='black'),
+    legend.title = element_text(size=1),
+    legend.text = element_text(size=1),
+    legend.position = "none",
+    legend.key = element_blank(),
+    panel.background = element_rect(fill=NA),
+    panel.border = element_rect(colour = "black", fill=NA, size=0.75),
+    #panel.border = element_blank(), #make the borders clear in prep for just have two axes
+    axis.line.x = element_line(colour = "black"),
+    #strip.text = element_text(size=15),
+    #strip.background = element_rect(
+    #color="black", fill="white", size=0.75, linetype="solid"),
+    axis.line.y = element_line(colour = "black"))
+
+ggsave("drad_leaf.size_plot.pdf",width = 6, height = 5, units = c("in"))
+
+#######morphology#######
+eff.sizes.morph<-subset(eff.sizes,subgroup=='morphology.biomass')
+eff.sizes.morph$Process_2 = factor(eff.sizes.morph$Process, levels=c('Leaf number','Stem number','root:shoot'))
+ggplot(eff.sizes.morph,aes(Week,effect,shape=as.factor(ID),na.rm=TRUE)) +
+  scale_x_discrete(labels=c('11'='')) +
+  facet_wrap(~Process_2) +
+  geom_hline(yintercept = c(0),color="black",size=1)  +
+  geom_hline(yintercept = c(-0.8),color="grey",size=1)  +
+  geom_hline(yintercept = c(0.8),color="grey",size=1)  +
+  geom_errorbar(aes(ymax = 0+sup, ymin = 0+inf),position=position_dodge(width=0.7),width=.4) +
+  stat_summary(geom="point",fun.y="mean",size=7,fill='white',aes(shape=as.factor(ID)),position=dodge.eff) +
+  scale_shape_manual(values=c('1'=21,'2'=22,'3'=23,'4'=24),name="",
+                     labels=c('1'='Mesic prairie','2'='Mixed-grass prairie','3'='Semi-arid steppe','4'='Desert grassland')) +
+  ylab('Post-drought recovery (effect size)') +
+  xlab('') +
+  theme(
+    axis.text = element_text(color='black',size=15),
+    axis.title = element_text(color='black',size=18),
+    axis.ticks = element_line(color='black'),
+    legend.title = element_text(size=20),
+    legend.text = element_text(size=10),
+    legend.position = c(.8,.75),
+    legend.key = element_blank(),
+    panel.background = element_rect(fill=NA),
+    panel.border = element_rect(colour = "black", fill=NA, size=0.75),
+    #panel.border = element_blank(), #make the borders clear in prep for just have two axes
+    axis.line.x = element_line(colour = "black"),
+    strip.text = element_text(size=15),
+    strip.background = element_rect(
+    color="black", fill="white", size=0.75, linetype="solid"),
+    axis.line.y = element_line(colour = "black"))
+
+ggsave("drad_morphology_plot.pdf",width = 9, height = 5, units = c("in"))
