@@ -162,8 +162,7 @@ Anova(full.recovery.A.transformed.2, contrasts=list(topic=contr.sum, sys=contr.s
 
 #separatation by species
 
-drad.phys.2<-drad.phys %>% filter(!(Plant=='bogr19'))
-drad.phys.2$A.transformed <- sqrt((drad.phys.2$A + 1)) 
+#drad.phys.2$A.transformed <- sqrt((drad.phys.2$A + 1)) 
 
 #######b.gracilis##
 b.gracilis<-subset(drad.phys,Species=="B.gracilis")

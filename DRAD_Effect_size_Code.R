@@ -1,6 +1,6 @@
 #effect size code
 library(effsize)
-
+?cohen.d
 #####extra###########
 drad.gwc<-read.csv(file.choose(),header=TRUE)
 head(drad.gwc)
@@ -572,3 +572,4 @@ ggplot(root.shoot.ggplot,aes(as.factor(ID),as.numeric(effect),na.rm=TRUE)) +
 ggsave("root.shoot.effsizes.plot.pdf",width = 8, height = 7.5, units = c("in"))
 
 
+head(drad.morph)
