@@ -251,3 +251,52 @@ ggplot(eff.sizes.morph,aes(Week,effect,shape=as.factor(ID),na.rm=TRUE)) +
     axis.line.y = element_line(colour = "black"))
 
 ggsave("drad_morphology_plot.pdf",width = 9, height = 5, units = c("in"))
+
+#green/brown leaves#######
+head(drad.morph)
+View(drad.morph)
+drad.morph$ratio<-(drad.morph$green.leaves/(drad.morph$green.leaves + drad.morph$brown.leaves))*100
+drad.ratio.dr<-subset(drad.morph,treatment=='DR')
+View(drad.ratio.dr)
+
+ag.mean.ratio<-aggregate(ratio~Species + Week + treatment, mean,data=drad.ratio.dr)
+ag.ser.ratio<-aggregate(ratio~Species + Week + treatment, ser,data=drad.ratio.dr)
+merge.stuff.ratio<-merge(ag.mean.ratio,ag.ser.ratio,by=c("Week","Species","treatment"))
+
+#jitter a little
+dodge <- position_dodge(.5)
+
+#make standard error limits
+limits.ratio<-aes(ymax = ratio.x- ratio.y, ymin = ratio.x+ratio.y)
+
+plot(ratio~Week,data=ratio.binded)
+
+ggplot(merge.stuff.ratio,aes(Week,ratio.x,na.rm=TRUE)) +
+  #geom_line() +
+  geom_vline(xintercept = 7,color="gray80",size=3)  +
+  geom_errorbar(limits.ratio,width=0.5) +
+  facet_wrap(~Species,labeller=hospital_labeller,nrow=2) +
+  geom_errorbar(limits.ratio,width=0.2) +
+  stat_summary(geom='point',fun.y='mean',size=3) +
+  stat_summary(geom='line',fun.y='mean',size=1) +
+  #facet_wrap(~Species) +
+  xlab("Week") +
+  ylab('% Green leaves') +
+  theme(
+    axis.text = element_text(color='black',size=14),
+    axis.title = element_text(color='black',size=30),
+    axis.ticks = element_line(color='black'),
+    legend.title = element_text(size=1),
+    legend.text = element_text(size=8),
+    legend.position = c(.08,.09),
+    legend.key = element_blank(),
+    panel.background = element_rect(fill=NA),
+    panel.border = element_rect(colour = "black", fill=NA, size=0.75),
+    #panel.border = element_blank(), #make the borders clear in prep for just have two axes
+    axis.line.x = element_line(colour = "black"),
+    strip.text = element_text(size=15),
+    strip.background = element_rect(
+      color="black", fill="white", size=0.75, linetype="solid"),
+    axis.line.y = element_line(colour = "black"))
+
+ggsave("drad_ratio_plot.pdf",width = 6, height = 5, units = c("in"))
